@@ -22,7 +22,7 @@ type ConfigSpec struct {
 	// OperatorStrategy defines which concrete implementation of vib.Operator should be used
 	OperatorStrategy vib.OperatorStrategy
 	// ResourceDir specifies the absolute path to Resource definitions.
-	// Defaults to CONFIG_DIR/vib/resourcesPath
+	// Defaults to CONFIG_DIR/vib/resources
 	ResourceDir string
 }
 
@@ -67,7 +67,7 @@ func readConfig(configDir *string) (*ConfigSpec, error) {
 		return nil, err
 	}
 
-	// check if there is no existing resourcesPath
+	// check if there is no existing resources
 	if len(resources) == 0 {
 		resource, err = defaultConfig()
 		if err != nil {

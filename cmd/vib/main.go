@@ -60,7 +60,7 @@ func main() {
 func Get() *cli.Command {
 	return &cli.Command{ //nolint:exhaustruct,exhaustivestruct
 		Name:     get,
-		Usage:    "Display one or many resourcesPath",
+		Usage:    "Display one or many resources",
 		Category: basicCategory,
 		Action: func(cctx *cli.Context) error {
 			resources, err := GetResources(cctx)
