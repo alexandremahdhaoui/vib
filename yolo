@@ -1,0 +1,13 @@
+mkdir ~/.idea
+mkdir -p ~/.local/share/JetBrains
+
+podman run --rm \
+	-v $XAUTHORITY:$XAUTHORITY:ro \
+	-v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+	--userns keep-id \
+	-e "DISPLAY" \
+	--security-opt label=type:container_runtime_t \
+	--net="host" \
+	-v ~/.idea:/home/coder/.idea \
+	-v ~/.local/share/JetBrains:/home/coder/Jetbrains \
+	-it marktmilligan/intellij-ultimate:latest intellij-idea-ultimate
