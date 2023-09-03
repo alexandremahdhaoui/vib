@@ -1,27 +1,28 @@
 package vib_test
 
 import (
-	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
+	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"reflect"
 	"testing"
 )
 
 func TestResolverSpec_Render(t *testing.T) {
-	aliasResolver, err := vib.AliasResolver()
+	aliasResolver, err := v1alpha1.AliasResolver()
 	Err(t, err)
 
-	functionResolver, err := vib.FunctionResolver()
+	functionResolver, err := v1alpha1.FunctionResolver()
 	Err(t, err)
 
-	envResolver, err := vib.EnvironmentResolver()
+	envResolver, err := v1alpha1.EnvironmentResolver()
 	Err(t, err)
 
-	exportedEnvResolver, err := vib.ExportedEnvironmentResolver()
+	exportedEnvResolver, err := v1alpha1.ExportedEnvironmentResolver()
 	Err(t, err)
 
 	for _, tc := range []struct {
 		Name               string
-		ResourceDefinition *vib.ResourceDefinition
+		ResourceDefinition *api.ResourceDefinition
 		Key, Value         string
 		Want               string
 	}{
@@ -61,7 +62,7 @@ func TestResolverSpec_Render(t *testing.T) {
 			Want:               "export TEST=\"3\"",
 		},
 	} {
-		resolver, ok := tc.ResourceDefinition.Spec.(vib.ResolverSpec)
+		resolver, ok := tc.ResourceDefinition.Spec.(v1alpha1.ResolverSpec)
 		if !ok {
 			t.Error("cannot type assert spec as vib.ResolverSpec")
 		}

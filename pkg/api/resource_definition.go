@@ -1,8 +1,4 @@
-package vib
-
-const (
-	V1Alpha1 = "vib.alexandre.mahdhaoui.com/v1alpha1"
-)
+package api
 
 type ResourceDefinition struct {
 	APIVersion APIVersion  `json:"apiVersion" yaml:"apiVersion"`

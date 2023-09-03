@@ -44,15 +44,15 @@ func SugaredLoggerWithCallerSkip(n int) *zap.SugaredLogger {
 }
 
 func Fatal(err error) {
-	if err != nil {
+	if zap.S().Level() == zap.DebugLevel {
 		SugaredLoggerWithCallerSkip(1).Fatalf(err.Error())
+		return
 	}
+	SugaredLoggerWithCallerSkip(1).Errorf(err.Error())
 }
 
 func Error(err error) {
-	if err != nil {
-		SugaredLoggerWithCallerSkip(1).Errorf(err.Error())
-	}
+	SugaredLoggerWithCallerSkip(1).Errorf(err.Error())
 }
 
 func Warn(template string, a ...interface{}) {

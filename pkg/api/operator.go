@@ -1,4 +1,4 @@
-package vib
+package api
 
 import (
 	"fmt"
@@ -32,30 +32,30 @@ func NewOperator(strategy OperatorStrategy, options ...any) (Operator, error) {
 	case FileSystemOperatorStrategy:
 		if len(options) != 4 {
 			fmt.Printf("%#v", options)
-			return nil, NewErrAndLog(
-				ErrType,
+			return nil, logger.NewErrAndLog(
+				logger.ErrType,
 				fmt.Sprintf("wrong number of argument to construct FilesystemOperator; got: %d", len(options)),
 			)
 		}
 
 		apiVersion, ok := options[0].(APIVersion)
 		if !ok {
-			return nil, NewErrAndLog(ErrType, "apiVersion must be of type string")
+			return nil, logger.NewErrAndLog(logger.ErrType, "apiVersion must be of type string")
 		}
 
 		kind, ok := options[1].(Kind)
 		if !ok {
-			return nil, NewErrAndLog(ErrType, "kind must be of type string")
+			return nil, logger.NewErrAndLog(logger.ErrType, "kind must be of type string")
 		}
 
 		resourceDir, ok := options[2].(string)
 		if !ok {
-			return nil, NewErrAndLog(ErrType, "resourceDir must be of type string")
+			return nil, logger.NewErrAndLog(logger.ErrType, "resourceDir must be of type string")
 		}
 
 		encoding, ok := options[3].(Encoding)
 		if !ok {
-			return nil, NewErrAndLog(ErrType, "encoding must be of type Encoding")
+			return nil, logger.NewErrAndLog(logger.ErrType, "encoding must be of type Encoding")
 		}
 
 		return NewFilesystemOperator(apiVersion, kind, resourceDir, encoding)
@@ -63,7 +63,7 @@ func NewOperator(strategy OperatorStrategy, options ...any) (Operator, error) {
 		// TODO implement me
 		panic("not implemented yet")
 	default:
-		err := fmt.Errorf("%w: operator strategy %q is not supported", ErrType, strategy)
+		err := fmt.Errorf("%w: operator strategy %q is not supported", logger.ErrType, strategy)
 		logger.Error(err)
 
 		return nil, err
@@ -138,7 +138,7 @@ func (s *FilesystemOperator) Create(t *ResourceDefinition) error {
 
 	if exist {
 		return fmt.Errorf("%w: cannot create resource; apiVersion: %q, kind: %q, name: %q",
-			ErrAlreadyExist, t.APIVersion, t.Kind, t.Metadata.Name)
+			logger.ErrAlreadyExist, t.APIVersion, t.Kind, t.Metadata.Name)
 	}
 
 	return s.write(t)

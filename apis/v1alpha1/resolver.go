@@ -1,7 +1,9 @@
-package vib
+package v1alpha1
 
 import (
 	"fmt"
+	"github.com/alexandremahdhaoui/vib/pkg/api"
+	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"os/exec"
 	"strings"
 )
@@ -25,11 +27,10 @@ const (
 )
 
 type ResolverSpec struct {
-	Type string        `json:"type" yaml:"type"`
-	Exec *ExecResolver `json:"exec,omitempty" yaml:"exec,omitempty"`
-	Fmt  *FmtResolver  `json:"fmt,omitempty" yaml:"fmt,omitempty"`
-	// Plain if Set to true, will print out the Value of the Expression.
-	Plain      *PlainResolver      `json:"plain,omitempty" yaml:"plain,omitempty"`
+	Type       string              `json:"type"                 yaml:"type"`
+	Exec       *ExecResolver       `json:"exec,omitempty"       yaml:"exec,omitempty"`
+	Fmt        *FmtResolver        `json:"fmt,omitempty"        yaml:"fmt,omitempty"`
+	Plain      *PlainResolver      `json:"plain,omitempty"      yaml:"plain,omitempty"`
 	GoTemplate *GotemplateResolver `json:"gotemplate,omitempty" yaml:"gotemplate,omitempty"`
 }
 
@@ -45,7 +46,7 @@ func (r *ResolverSpec) Render(key, value string) (string, error) {
 	case GotemplateResolverType:
 		return r.Plain.Render(key, value)
 	default:
-		return "", fmt.Errorf("%w; got: r.Type = %s", ErrType, r.Type)
+		return "", logger.NewErrAndLog(logger.ErrType, fmt.Sprintf("Resolver type %q is not supported", r.Type))
 	}
 }
 
@@ -106,15 +107,15 @@ func (r *GotemplateResolver) Render(key, value string) (string, error) {
 	panic("not implemented yet")
 }
 
-func NewResolver(name string, spec ResolverSpec) (*ResourceDefinition, error) {
+func NewResolver(name string, spec ResolverSpec) (*api.ResourceDefinition, error) {
 	if err := validateResolverSpec(&spec); err != nil {
 		return nil, err
 	}
 
-	return &ResourceDefinition{
-			APIVersion: V1Alpha1,
+	return &api.ResourceDefinition{
+			APIVersion: APIVersion,
 			Kind:       ResolverKind,
-			Metadata:   NewMetadata(name),
+			Metadata:   api.NewMetadata(name),
 			Spec:       spec,
 		},
 		nil
@@ -148,7 +149,7 @@ func validateResolverSpec(spec *ResolverSpec) error {
 // FunctionResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func FunctionResolver() (*ResourceDefinition, error) {
+func FunctionResolver() (*api.ResourceDefinition, error) {
 	return NewResolver(
 		FunctionResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -165,7 +166,7 @@ func FunctionResolver() (*ResourceDefinition, error) {
 // AliasResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func AliasResolver() (*ResourceDefinition, error) {
+func AliasResolver() (*api.ResourceDefinition, error) {
 	return NewResolver(
 		AliasResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -182,7 +183,7 @@ func AliasResolver() (*ResourceDefinition, error) {
 // EnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func EnvironmentResolver() (*ResourceDefinition, error) {
+func EnvironmentResolver() (*api.ResourceDefinition, error) {
 	return NewResolver(
 		EnvironmentResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -199,7 +200,7 @@ func EnvironmentResolver() (*ResourceDefinition, error) {
 // ExportedEnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func ExportedEnvironmentResolver() (*ResourceDefinition, error) {
+func ExportedEnvironmentResolver() (*api.ResourceDefinition, error) {
 	return NewResolver(
 		ExportedEnvironmentResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct

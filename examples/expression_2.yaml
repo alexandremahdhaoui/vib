@@ -1,0 +1,8 @@
+apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+kind: Expression
+metadata:
+  name: expression-2
+spec:
+  key: ""
+  value: ""
+  resolverRef: "fmt"

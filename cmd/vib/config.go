@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
+	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"github.com/mitchellh/mapstructure"
 	"os"
@@ -20,20 +22,20 @@ const (
 // vib.FilesystemOperator.
 type ConfigSpec struct {
 	// OperatorStrategy defines which concrete implementation of vib.Operator should be used
-	OperatorStrategy vib.OperatorStrategy
+	OperatorStrategy api.OperatorStrategy
 	// ResourceDir specifies the absolute path to Resource definitions.
 	// Defaults to CONFIG_DIR/vib/resources
 	ResourceDir string
 }
 
-func defaultConfig() (*vib.ResourceDefinition, error) {
+func defaultConfig() (*api.ResourceDefinition, error) {
 	resourceDir, err := defaultResourceDir()
 	if err != nil {
 		logger.Error(err)
 		return nil, err
 	}
 
-	return vib.NewResourceDefinition(vib.V1Alpha1, configKind, configName, ConfigSpec{
+	return api.NewResourceDefinition(v1alpha1.APIVersion, configKind, configName, ConfigSpec{
 		OperatorStrategy: defaultOperatorStrategy(),
 		ResourceDir:      resourceDir,
 	}), nil
@@ -43,7 +45,7 @@ func defaultConfig() (*vib.ResourceDefinition, error) {
 func readConfig(configDir *string) (*ConfigSpec, error) {
 	var err error
 	var cfgDir string
-	var resource *vib.ResourceDefinition
+	var resource *api.ResourceDefinition
 
 	if configDir != nil {
 		cfgDir = *configDir
@@ -56,7 +58,7 @@ func readConfig(configDir *string) (*ConfigSpec, error) {
 	}
 
 	// Initiate FS strategy for reading the config
-	strategy, err := vib.NewFilesystemOperator(vib.V1Alpha1, configKind, cfgDir, vib.YAMLEncoding)
+	strategy, err := api.NewFilesystemOperator(v1alpha1.APIVersion, configKind, cfgDir, api.YAMLEncoding)
 	if err != nil {
 		logger.Error(err)
 		return nil, err
@@ -109,6 +111,6 @@ func defaultResourceDir() (string, error) {
 	return filepath.Join(path, resourcesPath), nil
 }
 
-func defaultOperatorStrategy() vib.OperatorStrategy {
-	return vib.FileSystemOperatorStrategy
+func defaultOperatorStrategy() api.OperatorStrategy {
+	return api.FileSystemOperatorStrategy
 }

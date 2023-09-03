@@ -1,11 +1,11 @@
-package vib
+package api
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
 )
@@ -30,7 +30,7 @@ func NewEncoder(encoding Encoding) (Encoder, error) {
 	case YAMLEncoding:
 		return &YAMLStrategy{}, nil
 	default:
-		return nil, fmt.Errorf("%w: %q", ErrEncoding, encoding)
+		return nil, fmt.Errorf("%w: %q", logger.ErrEncoding, encoding)
 	}
 }
 
@@ -40,8 +40,8 @@ func NewEncoderFromFilepath(path string) (Encoder, error) {
 
 	encoder, err := NewEncoder(Encoding(extension))
 	if err != nil {
-		if errors.As(err, &ErrEncoding) {
-			err = fmt.Errorf("%w; %w: %q", err, ErrFileExtension, path)
+		if errors.As(err, &logger.ErrEncoding) {
+			err = fmt.Errorf("%w; %w: %q", err, logger.ErrFileExtension, path)
 			logger.Error(err)
 			return nil, err
 		}

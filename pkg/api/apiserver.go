@@ -1,4 +1,4 @@
-package vib
+package api
 
 import (
 	"fmt"
@@ -74,7 +74,7 @@ func (l *localAPIServer) Register(apiKind APIKind) error {
 		// apiVersions map is not nil.
 		// -> check if there is already an entry for the specified kind-apiVersion
 		if _, ok = apiVersions[apiVersion]; ok {
-			err := fmt.Errorf("%w: cannot register APIKind %#v", ErrAlreadyExist, apiKind)
+			err := fmt.Errorf("%w: cannot register APIKind %#v", logger.ErrAlreadyExist, apiKind)
 			logger.Error(err)
 			return err
 		}
@@ -153,7 +153,7 @@ func (l *localAPIServer) Get(apiVersion *APIVersion, kind Kind, name *string) ([
 	// check if kind is registered
 	if _, ok := l.apiKinds[kind]; !ok {
 		// kind is not registered, return error
-		err := errKind(kind)
+		err := ErrKind(kind)
 		logger.Error(err)
 
 		return nil, err
@@ -171,7 +171,7 @@ func (l *localAPIServer) Get(apiVersion *APIVersion, kind Kind, name *string) ([
 			apiKinds[dereferencedAPIVersion] = apiKind
 		} else {
 			// specified APIVersion is not registered, return error
-			err := errApiVersion(dereferencedAPIVersion, kind)
+			err := ErrApiVersion(dereferencedAPIVersion, kind)
 			logger.Error(err)
 
 			return nil, err
@@ -289,7 +289,7 @@ func (l *localAPIServer) queryAPIKinds(apiVersion *APIVersion, kind Kind) ([]API
 	// check if kind is registered
 	if _, ok := l.apiKinds[kind]; !ok {
 		// kind is not registered, return error
-		err = errKind(kind)
+		err = ErrKind(kind)
 		logger.Error(err)
 
 		return nil, err
@@ -299,7 +299,7 @@ func (l *localAPIServer) queryAPIKinds(apiVersion *APIVersion, kind Kind) ([]API
 
 	apiKinds := l.apiKinds[kind]
 	if len(apiKinds) == 0 {
-		err = fmt.Errorf("%w: kind %q cannot be found", ErrNotFound, kind)
+		err = fmt.Errorf("%w: kind %q cannot be found", logger.ErrNotFound, kind)
 		logger.Error(err)
 
 		return nil, err
@@ -312,7 +312,7 @@ func (l *localAPIServer) queryAPIKinds(apiVersion *APIVersion, kind Kind) ([]API
 		// if corresponding APIKind exist, then we construct an "apiKinds" map made only of the specified apiVersion
 		if _, ok := apiKinds[version]; !ok {
 			// specified APIVersion is not registered, return error
-			err = errApiVersion(version, kind)
+			err = ErrApiVersion(version, kind)
 			logger.Error(err)
 
 			return nil, err

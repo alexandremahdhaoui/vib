@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
+	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 )
 
-func APIServer(apiKinds []vib.APIKind) (vib.APIServer, error) {
-	apiServer := vib.NewAPIServer()
+func APIServer(apiKinds []api.APIKind) (api.APIServer, error) {
+	apiServer := api.NewAPIServer()
 
 	for _, apiKind := range apiKinds {
 		err := apiServer.Register(apiKind)
@@ -19,8 +20,8 @@ func APIServer(apiKinds []vib.APIKind) (vib.APIServer, error) {
 	return apiServer, nil
 }
 
-func APIKinds(config *ConfigSpec) ([]vib.APIKind, error) {
-	results := make([]vib.APIKind, 0)
+func APIKinds(config *ConfigSpec) ([]api.APIKind, error) {
+	results := make([]api.APIKind, 0)
 
 	factory, err := operatorFactory(config)
 	if err != nil {
@@ -28,46 +29,46 @@ func APIKinds(config *ConfigSpec) ([]vib.APIKind, error) {
 	}
 
 	for _, x := range []struct {
-		APIVersion vib.APIVersion
-		Kind       vib.Kind
+		APIVersion api.APIVersion
+		Kind       api.Kind
 	}{
-		{vib.V1Alpha1, vib.ProfileKind},
-		{vib.V1Alpha1, vib.SetKind},
-		{vib.V1Alpha1, vib.ExpressionKind},
-		{vib.V1Alpha1, vib.ResolverKind},
+		{v1alpha1.APIVersion, v1alpha1.ProfileKind},
+		{v1alpha1.APIVersion, v1alpha1.SetKind},
+		{v1alpha1.APIVersion, v1alpha1.ExpressionKind},
+		{v1alpha1.APIVersion, v1alpha1.ResolverKind},
 	} {
 		operator, err := factory(x.APIVersion, x.Kind)
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, vib.NewAPIKind(x.APIVersion, x.Kind, operator))
+		results = append(results, api.NewAPIKind(x.APIVersion, x.Kind, operator))
 	}
 
 	return results, nil
 }
 
-func operatorFactory(config *ConfigSpec) (func(vib.APIVersion, vib.Kind) (vib.Operator, error), error) {
+func operatorFactory(config *ConfigSpec) (func(api.APIVersion, api.Kind) (api.Operator, error), error) {
 	options := make([]interface{}, 0)
 
 	switch config.OperatorStrategy {
-	case vib.FileSystemOperatorStrategy:
-		options = append(options, config.ResourceDir, vib.YAMLEncoding)
-	case vib.GitOperatorStrategy:
+	case api.FileSystemOperatorStrategy:
+		options = append(options, config.ResourceDir, api.YAMLEncoding)
+	case api.GitOperatorStrategy:
 		// TODO implement me
 		panic("not implemented yet")
 	default:
-		err := fmt.Errorf("%w: operator strategy %q is not supported", vib.ErrType, config.OperatorStrategy)
+		err := fmt.Errorf("%w: operator strategy %q is not supported", logger.ErrType, config.OperatorStrategy)
 		logger.Error(err)
 		return nil, err
 	}
 
-	return func(apiVersion vib.APIVersion, kind vib.Kind) (vib.Operator, error) {
+	return func(apiVersion api.APIVersion, kind api.Kind) (api.Operator, error) {
 		options := append([]interface{}{apiVersion, kind}, options...)
-		return vib.NewOperator(config.OperatorStrategy, options...)
+		return api.NewOperator(config.OperatorStrategy, options...)
 	}, nil
 }
 
-func fastInit() (vib.APIServer, error) {
+func fastInit() (api.APIServer, error) {
 	config, err := readConfig(nil)
 	if err != nil {
 		return nil, err

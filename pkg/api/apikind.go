@@ -1,7 +1,8 @@
-package vib
+package api
 
 import (
 	"fmt"
+	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"regexp"
 	"strings"
 )
@@ -59,7 +60,7 @@ func RegexAPIVersionAndKind() string {
 }
 
 func RegexResourceName() string {
-	return "[a-z]+[a-z0-9]+(\\-[a-z0-9]+)*"
+	return "[a-z][a-z0-9]+(\\-[a-z0-9]+)*"
 }
 
 func (v APIVersion) ToLower() APIVersion {
@@ -71,7 +72,7 @@ func (v APIVersion) Validate() (APIVersion, error) {
 		return apiVersion, nil
 	}
 
-	return "", NewErrAndLog(ErrValidation, fmt.Sprintf("couldn't validate APIVersion %q", v))
+	return "", logger.NewErrAndLog(logger.ErrValidation, fmt.Sprintf("couldn't validate APIVersion %q", v))
 }
 
 func (k Kind) ToLower() Kind {
@@ -83,7 +84,7 @@ func (k Kind) Validate() (Kind, error) {
 		return kind, nil
 	}
 
-	return "", NewErrAndLog(ErrValidation, fmt.Sprintf("couldn't validate Kind %q", k))
+	return "", logger.NewErrAndLog(logger.ErrValidation, fmt.Sprintf("couldn't validate Kind %q", k))
 }
 
 func ValidateResourceName(s string) error {
@@ -91,7 +92,7 @@ func ValidateResourceName(s string) error {
 		return nil
 	}
 
-	return NewErrAndLog(ErrValidation, fmt.Sprintf("couldn't validate resource name %q", s))
+	return logger.NewErrAndLog(logger.ErrValidation, fmt.Sprintf("couldn't validate resource name %q", s))
 }
 
 func ValidateResourceNamePtr(ptr *string) error {
@@ -103,7 +104,7 @@ func ValidateResourceNamePtr(ptr *string) error {
 		return nil
 	}
 
-	return NewErrAndLog(ErrValidation, fmt.Sprintf("couldn't validate resource name %q", *ptr))
+	return logger.NewErrAndLog(logger.ErrValidation, fmt.Sprintf("couldn't validate resource name %q", *ptr))
 }
 
 func ValidateAPIVersionPtr(ptr *APIVersion) error {

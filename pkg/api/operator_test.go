@@ -1,8 +1,9 @@
-package vib_test
+package api
 
 import (
 	"fmt"
 	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -26,10 +27,10 @@ func folder(t *testing.T) func() {
 	return func() { _ = os.RemoveAll(TestingFolder) }
 }
 
-func strategy(t *testing.T) *vib.FilesystemOperator {
+func strategy(t *testing.T) *FilesystemOperator {
 	t.Helper()
 
-	strategy, err := vib.NewFilesystemOperator(vib.V1Alpha1, vib.ExpressionKind, TestingFolder, vib.YAMLEncoding)
+	strategy, err := NewFilesystemOperator(v1alpha1.APIVersion, v1alpha1.ExpressionKind, TestingFolder, YAMLEncoding)
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,33 +38,33 @@ func strategy(t *testing.T) *vib.FilesystemOperator {
 	return strategy
 }
 
-func expressions(t *testing.T) []*vib.ResourceDefinition {
+func expressions(t *testing.T) []*ResourceDefinition {
 	t.Helper()
 
-	exps := []*vib.ResourceDefinition{
-		vib.NewExpression("test0", vib.Expression{
+	exps := []*ResourceDefinition{
+		vib.NewExpression("test0", v1alpha1.ExpressionSpec{
 			Key:         "test0",
 			Value:       "0",
-			ResolverRef: vib.EnvironmentResolverRef,
+			ResolverRef: v1alpha1.EnvironmentResolverRef,
 		}),
-		vib.NewExpression("test1", vib.Expression{
+		vib.NewExpression("test1", v1alpha1.ExpressionSpec{
 			Key:         "test1",
 			Value:       "1",
-			ResolverRef: vib.ExportedEnvironmentResolverRef,
+			ResolverRef: v1alpha1.ExportedEnvironmentResolverRef,
 		}),
 	}
 	return exps
 }
 
-func writeExpressions(t *testing.T, exps []*vib.ResourceDefinition) {
+func writeExpressions(t *testing.T, exps []*ResourceDefinition) {
 	t.Helper()
 	for _, exp := range exps {
 		fp := filepath.Join(
 			TestingFolder,
-			fmt.Sprintf("%s.%s.%s.%s", vib.cleanAPIVersionForFilesystem(exp.APIVersion), exp.Kind, exp.Metadata.Name, vib.YAMLEncoding),
+			fmt.Sprintf("%s.%s.%s.%s", cleanAPIVersionForFilesystem(exp.APIVersion), exp.Kind, exp.Metadata.Name, YAMLEncoding),
 		)
 
-		err := vib.WriteEncodedFile(fp, *exp)
+		err := WriteEncodedFile(fp, *exp)
 		if err != nil {
 			t.Error(err)
 		}
@@ -119,10 +120,10 @@ func TestFilesystemOperatorStrategy_Create(t *testing.T) {
 
 		fp := filepath.Join(
 			TestingFolder,
-			fmt.Sprintf("%s.%s.%s.%s", vib.cleanAPIVersionForFilesystem(exp.APIVersion), exp.Kind, exp.Metadata.Name, vib.YAMLEncoding),
+			fmt.Sprintf("%s.%s.%s.%s", cleanAPIVersionForFilesystem(exp.APIVersion), exp.Kind, exp.Metadata.Name, YAMLEncoding),
 		)
 
-		got, err := vib.ReadEncodedFile(fp)
+		got, err := ReadEncodedFile(fp)
 		if err != nil {
 			t.Error(err)
 		}

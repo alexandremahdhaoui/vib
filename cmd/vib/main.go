@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
@@ -63,7 +64,13 @@ func Get() *cli.Command {
 		Usage:    "Display one or many resources",
 		Category: basicCategory,
 		Action: func(cctx *cli.Context) error {
-			resources, err := GetResources(cctx)
+
+			server, err := fastInit()
+			if err != nil {
+				return err
+			}
+
+			resources, err := GetResources(cctx, server)
 			if err != nil {
 				return err
 			}
@@ -80,21 +87,16 @@ func Get() *cli.Command {
 	}
 }
 
-func GetResources(cctx *cli.Context) ([]vib.ResourceDefinition, error) {
+func GetResources(cctx *cli.Context, server api.APIServer) ([]api.ResourceDefinition, error) {
 	apiVersion, kind := ParseAPIVersionAndKindFromArgs(cctx)
 	if kind == nil {
 		return nil, pleaseSpecifyAResourceKind()
 	}
 
-	apiServer, err := fastInit()
-	if err != nil {
-		return nil, err
-	}
-
 	names := ParseResourceNamesFromArgs(cctx)
 	// Condition were user didn't specify any name
 	if len(names) == 0 {
-		resources, err := apiServer.Get(apiVersion, *kind, nil)
+		resources, err := server.Get(apiVersion, *kind, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -102,11 +104,10 @@ func GetResources(cctx *cli.Context) ([]vib.ResourceDefinition, error) {
 		return resources, nil
 	}
 
-	results := make([]vib.ResourceDefinition, 0)
+	results := make([]api.ResourceDefinition, 0)
 	// Condition were user specified name(s)
 	for _, name := range names {
-		name := name
-		resources, err := apiServer.Get(apiVersion, *kind, &name)
+		resources, err := server.Get(apiVersion, *kind, &name)
 		if err != nil {
 			return nil, err
 		}
@@ -260,14 +261,28 @@ func Render() *cli.Command {
 			debugFlag(),
 		},
 		Action: func(cctx *cli.Context) error {
-			resources, err := GetResources(cctx)
+			var rendered string
+
+			server, err := fastInit()
+			if err != nil {
+				return err
+			}
+
+			resources, err := GetResources(cctx, server)
 			if err != nil {
 				return err
 			}
 
 			for _, resource := range resources {
-				vib.Render(&resource)
+				s, err := vib.Render(&resource, server)
+				if err != nil {
+					return err
+				}
+
+				rendered = fmt.Sprintf("%s\n%s", rendered, s)
 			}
+
+			fmt.Println(rendered)
 
 			return nil
 		},

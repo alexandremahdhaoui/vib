@@ -1,8 +1,7 @@
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
-kind: Profile
+kind: Set
 metadata:
-  name: test
+  name: set-1
 spec:
-  SetRefs:
-    - test
-    - "123"
+  expressionRefs:
+    - expression-1

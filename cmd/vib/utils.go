@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
@@ -17,7 +17,7 @@ const (
 )
 
 // ParseAPIVersionAndKindFromArgs returns both optionally not nil pointer to vib.APIVersion and vib.Kind
-func ParseAPIVersionAndKindFromArgs(cctx *cli.Context) (*vib.APIVersion, *vib.Kind) {
+func ParseAPIVersionAndKindFromArgs(cctx *cli.Context) (*api.APIVersion, *api.Kind) {
 	s := strings.ToLower(cctx.Args().Get(0))
 	if s == "" {
 		return nil, nil
@@ -25,18 +25,18 @@ func ParseAPIVersionAndKindFromArgs(cctx *cli.Context) (*vib.APIVersion, *vib.Ki
 
 	apiVersionAndKindRegex := regexp.MustCompile(
 		// ${domain_name}/v[0-9]+[a-z0-9]*/${kind}
-		vib.RegexAPIVersionAndKind(),
+		api.RegexAPIVersionAndKind(),
 	)
 
 	if apiVersionAndKindRegex.MatchString(s) {
 		sl := strings.Split(s, "/")
-		apiVersion := vib.APIVersion(strings.Join(sl[0:1], sl[1]))
-		kind := vib.Kind(sl[2])
+		apiVersion := api.APIVersion(strings.Join(sl[0:1], sl[1]))
+		kind := api.Kind(sl[2])
 		return &apiVersion, &kind
 	}
 
-	if regexp.MustCompile(vib.RegexKindLowered()).MatchString(s) {
-		kind := vib.Kind(s)
+	if regexp.MustCompile(api.RegexKindLowered()).MatchString(s) {
+		kind := api.Kind(s)
 		return nil, &kind
 	}
 	return nil, nil
@@ -47,12 +47,12 @@ func ParseResourceNamesFromArgs(cctx *cli.Context) []string {
 		return nil
 	}
 
-	regex := regexp.MustCompile(vib.RegexResourceName())
+	regex := regexp.MustCompile(api.RegexResourceName())
 
 	results := make([]string, 0)
 	for _, name := range cctx.Args().Slice()[1:] {
 		if !regex.MatchString(name) {
-			_ = vib.NewErrAndLog(vib.ErrType, fmt.Sprintf("resource name %q is not supported", name))
+			_ = logger.NewErrAndLog(logger.ErrType, fmt.Sprintf("resource name %q is not supported", name))
 
 			return nil
 		}
@@ -63,13 +63,13 @@ func ParseResourceNamesFromArgs(cctx *cli.Context) []string {
 	return results
 }
 
-func resourceFromFileOrStdin(cctx *cli.Context) (*vib.ResourceDefinition, error) {
-	var resource *vib.ResourceDefinition
+func resourceFromFileOrStdin(cctx *cli.Context) (*api.ResourceDefinition, error) {
+	var resource *api.ResourceDefinition
 	var err error
 
 	if file := cctx.String(fileFlagName); file != "" {
 		// read file
-		resource, err = vib.ReadEncodedFile(file)
+		resource, err = api.ReadEncodedFile(file)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +97,7 @@ func debugFlag() *cli.BoolFlag {
 }
 
 // unmarshalFromStdin only supports vib.YAMLEncoding for now
-func unmarshalFromStdin() (*vib.ResourceDefinition, error) {
+func unmarshalFromStdin() (*api.ResourceDefinition, error) {
 	logger.Debug("reading resource from stdin")
 	// Otherwise read from stdin
 	data, err := io.ReadAll(os.Stdin)
@@ -107,7 +107,7 @@ func unmarshalFromStdin() (*vib.ResourceDefinition, error) {
 		return nil, err
 	}
 
-	var resource *vib.ResourceDefinition
+	var resource *api.ResourceDefinition
 	if err = yaml.Unmarshal(data, resource); err != nil {
 		logger.Error(err)
 
@@ -118,9 +118,9 @@ func unmarshalFromStdin() (*vib.ResourceDefinition, error) {
 }
 
 func pleaseSpecifyAResourceKind() error {
-	return vib.NewErr(vib.ErrArgs, "please specify a resource kind") //nolint:wrapcheck
+	return logger.NewErr(logger.ErrArgs, "please specify a resource kind") //nolint:wrapcheck
 }
 
 func pleaseSpecifyValidResourceNames() error {
-	return vib.NewErr(vib.ErrArgs, "please specify valid resource name(s)") //nolint:wrapcheck
+	return logger.NewErr(logger.ErrArgs, "please specify valid resource name(s)") //nolint:wrapcheck
 }
