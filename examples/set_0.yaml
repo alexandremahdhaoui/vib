@@ -5,3 +5,4 @@ metadata:
 spec:
   expressionRefs:
     - expression-0
+    - expressionset-0

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/apis"
 	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
 	"os"
 	"path/filepath"
@@ -30,7 +31,7 @@ func folder(t *testing.T) func() {
 func strategy(t *testing.T) *FilesystemOperator {
 	t.Helper()
 
-	strategy, err := NewFilesystemOperator(v1alpha1.APIVersion, v1alpha1.ExpressionKind, TestingFolder, YAMLEncoding)
+	strategy, err := NewFilesystemOperator(apis.V1Alpha1, apis.ExpressionKind, TestingFolder, YAMLEncoding)
 	if err != nil {
 		t.Error(err)
 	}

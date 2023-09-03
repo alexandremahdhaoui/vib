@@ -28,7 +28,7 @@ func New(debug bool) {
 	}
 
 	encoder := zapcore.NewConsoleEncoder(config)
-	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel)
+	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stderr), logLevel)
 	logger := zap.New(core, options...)
 	_ = logger.Sync()
 

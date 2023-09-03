@@ -1,0 +1,11 @@
+apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+kind: ExpressionSet
+metadata:
+  name: expressionset-0
+spec:
+  keyValues:
+    - key: value
+    - pairs: from
+    - ExpressionSet: are
+    - ordered: correctly
+  resolverRef: "alias"

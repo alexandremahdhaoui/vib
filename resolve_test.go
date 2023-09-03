@@ -27,7 +27,7 @@ func TestResolverSpec_Render(t *testing.T) {
 		Want               string
 	}{
 		//{
-		//	Name:               "ExecResolver",
+		//	Name:               "ExecResolverSpec",
 		//	ResourceDefinition: nil,
 		//	Key:                "echo",
 		//	Value:              "this value",

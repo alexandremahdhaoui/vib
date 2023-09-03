@@ -2,22 +2,37 @@ package main
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
+	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/apis"
 	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 )
 
 func APIServer(apiKinds []api.APIKind) (api.APIServer, error) {
-	apiServer := api.NewAPIServer()
+	server := api.NewAPIServer()
 
 	for _, apiKind := range apiKinds {
-		err := apiServer.Register(apiKind)
+		err := server.Register(apiKind)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return apiServer, nil
+	// get Default Resources
+	resources, err := vib.DefaultResolver(apis.V1Alpha1)
+	if err != nil {
+		return nil, err
+	}
+
+	// install the default resources
+	for _, resource := range resources {
+		err = server.Update(&resource.APIVersion, resource.Kind, resource.Metadata.Name, resource)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return server, nil
 }
 
 func APIKinds(config *ConfigSpec) ([]api.APIKind, error) {
@@ -32,10 +47,11 @@ func APIKinds(config *ConfigSpec) ([]api.APIKind, error) {
 		APIVersion api.APIVersion
 		Kind       api.Kind
 	}{
-		{v1alpha1.APIVersion, v1alpha1.ProfileKind},
-		{v1alpha1.APIVersion, v1alpha1.SetKind},
-		{v1alpha1.APIVersion, v1alpha1.ExpressionKind},
-		{v1alpha1.APIVersion, v1alpha1.ResolverKind},
+		{apis.V1Alpha1, apis.ProfileKind},
+		{apis.V1Alpha1, apis.SetKind},
+		{apis.V1Alpha1, apis.ExpressionKind},
+		{apis.V1Alpha1, apis.ExpressionSetKind},
+		{apis.V1Alpha1, apis.ResolverKind},
 	} {
 		operator, err := factory(x.APIVersion, x.Kind)
 		if err != nil {

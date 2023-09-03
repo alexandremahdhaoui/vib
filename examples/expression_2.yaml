@@ -3,6 +3,6 @@ kind: Expression
 metadata:
   name: expression-2
 spec:
-  key: ""
-  value: ""
-  resolverRef: "fmt"
+  key: "key-2"
+  value: "value-2"
+  resolverRef: "function"

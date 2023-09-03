@@ -3,6 +3,6 @@ kind: Expression
 metadata:
   name: expression-1
 spec:
-  key: ""
-  value: ""
-  resolverRef: "plain"
+  key: "key-1"
+  value: "value-1"
+  resolverRef: "alias"

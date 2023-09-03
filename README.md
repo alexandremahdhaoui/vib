@@ -23,6 +23,10 @@ Vib (pronounced "vibe") allows users to intuitively manage their bash environmen
 | Delete  | Deletes a Resource Definition from `vib`.                                                                                                                                                                                          |
 | Apply   | Apply resource definitions or a list of files to `vib`.                                                                                                                                                                            |
 
-## TODO
 
-- [ ] Improve logging + avoid redundant err logging
+## Try it
+
+```shell
+for x in examples/*; do go run ./... --debug apply -f $x; done
+go run ./... --debug render profile profile-0
+```

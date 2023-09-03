@@ -2,6 +2,7 @@ package vib
 
 import (
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
+	"strings"
 )
 
 func ToPointer[T any](t T) *T {
@@ -17,4 +18,16 @@ func removeIndexFromSliceFast[T any](sl []T, i int) []T {
 
 func Debug(v interface{}) {
 	logger.SugaredLoggerWithCallerSkip(1).Debugf("%#v", v)
+}
+
+func JoinLine(buffer string, line string) string {
+	if line == "" {
+		return buffer
+	}
+
+	if buffer == "" {
+		return line
+	}
+
+	return strings.Join([]string{buffer, line}, "\n")
 }

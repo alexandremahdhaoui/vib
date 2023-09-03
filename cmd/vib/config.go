@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/alexandremahdhaoui/vib"
-	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
+	"github.com/alexandremahdhaoui/vib/apis"
 	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"github.com/mitchellh/mapstructure"
@@ -35,7 +35,7 @@ func defaultConfig() (*api.ResourceDefinition, error) {
 		return nil, err
 	}
 
-	return api.NewResourceDefinition(v1alpha1.APIVersion, configKind, configName, ConfigSpec{
+	return api.NewResourceDefinition(apis.V1Alpha1, configKind, configName, ConfigSpec{
 		OperatorStrategy: defaultOperatorStrategy(),
 		ResourceDir:      resourceDir,
 	}), nil
@@ -58,7 +58,7 @@ func readConfig(configDir *string) (*ConfigSpec, error) {
 	}
 
 	// Initiate FS strategy for reading the config
-	strategy, err := api.NewFilesystemOperator(v1alpha1.APIVersion, configKind, cfgDir, api.YAMLEncoding)
+	strategy, err := api.NewFilesystemOperator(apis.V1Alpha1, configKind, cfgDir, api.YAMLEncoding)
 	if err != nil {
 		logger.Error(err)
 		return nil, err

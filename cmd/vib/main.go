@@ -261,7 +261,7 @@ func Render() *cli.Command {
 			debugFlag(),
 		},
 		Action: func(cctx *cli.Context) error {
-			var rendered string
+			buffer := ""
 
 			server, err := fastInit()
 			if err != nil {
@@ -279,10 +279,11 @@ func Render() *cli.Command {
 					return err
 				}
 
-				rendered = fmt.Sprintf("%s\n%s", rendered, s)
+				buffer = vib.JoinLine(buffer, s)
+
 			}
 
-			fmt.Println(rendered)
+			fmt.Println(buffer)
 
 			return nil
 		},
