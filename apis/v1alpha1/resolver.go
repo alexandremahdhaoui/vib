@@ -42,15 +42,15 @@ type (
 	}
 
 	FmtResolverSpec struct {
-		Template string
+		Template string `json:"template" yaml:"template"`
 		// FmtArguments is a list of FmtArgument, that will be used to format the template
-		FmtArguments []FmtArgument
+		FmtArguments []FmtArgument `json:"fmtArguments" yaml:"fmtArguments"`
 	}
 
 	PlainResolverSpec bool
 
 	GotemplateResolverSpec struct {
-		Template string
+		Template string `json:"template" yaml:"template"`
 	}
 )
 
