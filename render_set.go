@@ -25,12 +25,11 @@ func RenderSet(resource *api.ResourceDefinition, server api.APIServer) (string, 
 			}
 
 			results := make([]api.ResourceDefinition, 0)
-
-			for _, supportedKind := range []api.Kind{
+			supportedKinds := []api.Kind{
 				apis.ExpressionSetKind,
 				apis.ExpressionKind,
-			} {
-
+			}
+			for _, supportedKind := range supportedKinds {
 				res, err := server.Get(nil, supportedKind, &expressionRef)
 				if err != nil {
 					return "", err
@@ -41,7 +40,7 @@ func RenderSet(resource *api.ResourceDefinition, server api.APIServer) (string, 
 
 			if len(results) == 0 {
 				return "", api.ErrReference(expressionRef,
-					api.Kind(fmt.Sprintf("{%s,%s}", apis.ExpressionKind, apis.ExpressionSetKind)))
+					api.Kind(fmt.Sprintf("%#v", supportedKinds)))
 			}
 
 			s, err := Render(&results[0], server)

@@ -24,13 +24,22 @@ func RenderProfile(resource *api.ResourceDefinition, server api.APIServer) (stri
 				return "", err
 			}
 
-			results, err := server.Get(nil, apis.SetKind, &ref)
-			if err != nil {
-				return "", err
+			results := make([]api.ResourceDefinition, 0)
+			supportedKinds := []api.Kind{
+				apis.SetKind,
+				apis.ExpressionKind,
+			}
+			for _, supportedKind := range supportedKinds {
+				res, err := server.Get(nil, supportedKind, &ref)
+				if err != nil {
+					return "", err
+				}
+				results = append(results, res...)
 			}
 
 			if len(results) == 0 {
-				return "", api.ErrReference(ref, apis.SetKind)
+				return "", api.ErrReference(ref,
+					api.Kind(fmt.Sprintf("%#v", supportedKinds)))
 			}
 
 			s, err := Render(&results[0], server)
