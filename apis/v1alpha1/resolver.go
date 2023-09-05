@@ -116,7 +116,7 @@ func FunctionResolver() (*api.ResourceDefinition, error) {
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
 			Type: FmtResolverType,
 			Fmt: &FmtResolverSpec{
-				Template:     "%s() { %s ; }",
+				Template:     "%s() { \n%s\n; }",
 				FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
 			},
 		},
