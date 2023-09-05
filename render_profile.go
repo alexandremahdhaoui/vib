@@ -27,7 +27,7 @@ func RenderProfile(resource *api.ResourceDefinition, server api.APIServer) (stri
 			results := make([]api.ResourceDefinition, 0)
 			supportedKinds := []api.Kind{
 				apis.SetKind,
-				apis.ExpressionKind,
+				apis.ExpressionSetKind,
 			}
 			for _, supportedKind := range supportedKinds {
 				res, err := server.Get(nil, supportedKind, &ref)
