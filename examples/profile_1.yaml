@@ -1,7 +1,0 @@
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
-kind: Profile
-metadata:
-  name: profile-1
-spec:
-  setRefs:
-    - set-2

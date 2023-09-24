@@ -1,0 +1,9 @@
+apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+kind: Profile
+metadata:
+    name: myprofile
+spec:
+    setRefs:
+        - env
+        - alias
+        - kubectl

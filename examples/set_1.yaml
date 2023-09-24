@@ -1,7 +1,0 @@
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
-kind: Set
-metadata:
-  name: set-1
-spec:
-  expressionRefs:
-    - expression-1

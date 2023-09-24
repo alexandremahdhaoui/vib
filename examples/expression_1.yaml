@@ -1,8 +1,0 @@
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
-kind: Expression
-metadata:
-  name: expression-1
-spec:
-  key: "key-1"
-  value: "value-1"
-  resolverRef: "alias"

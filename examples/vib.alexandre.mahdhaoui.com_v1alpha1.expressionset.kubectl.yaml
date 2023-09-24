@@ -1,0 +1,65 @@
+apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+kind: ExpressionSet
+metadata:
+  name: kubectl
+spec:
+  keyValues:
+    - k: kubectl "${@}"
+    - ka: kubectl apply -f "${@}"
+    - kns-current:  kubectl config view --minify -o jsonpath='{..namespace}'
+    - kctx: |-
+        __err_no_match() { echo Cannot match context with pattern \"${1}\"; }
+
+        CONTEXT_PATTERN="${1}"
+        CONTEXTS="$(kubectl config get-contexts -oname)"
+
+        if [ -z "${CONTEXT_PATTERN}" ]; then echo "${CONTEXTS}"; return ;fi
+
+        # select between available context from the CONTEXT_MATCH
+        # - if no match: return err no match
+        # - if and only if 1 match: don't prompt for selection and use this context
+        CONTEXT_MATCH=$(echo "${CONTEXTS}" | grep --color=none "${CONTEXT_PATTERN}")
+        if [ -z "${CONTEXT_MATCH}" ]; then __err_no_match "${CONTEXT_PATTERN}"; return 1; fi
+        
+        CONTEXT_SELECTED=""
+        if [ $(echo ${CONTEXT_MATCH} | wc -w) == "1" ]; then
+          CONTEXT_SELECTED="${CONTEXT_MATCH}"
+        else
+          PS3="Please select a context: "
+          select X in ${CONTEXT_MATCH}; do
+            CONTEXT_SELECTED="${X}"
+            break
+          done
+        fi
+
+        if [ -z "${CONTEXT_SELECTED}" ]; then echo Please select a context; return 1; fi
+        
+        # Use context on selected context
+        kubectl config use-context "${CONTEXT_SELECTED}" &&\
+          echo Successfully selected context \"${CONTEXT_SELECTED}\" ||\
+          echo Failed to select context \"${CONTEXT_SELECTED}\"
+    - kd: kubectl describe  "${@}"
+    - kdds: kubectl describe daemonset "${@}"
+    - kdp: kubectl describe pod "${@}"
+    - kdrs: kubectl describe replicaset "${@}"
+    - kdsts: kubectl describe statefulset "${@}"
+    - ke: kubectl edit "${@}"
+    - kex: kubectl exec -it "${@}"
+    - kg: kubectl get "${@}"
+    - kga: kubectl get -A "${@}"
+    - kgp: kubectl get pods "${@}"
+    - kgpa: kubectl get pods -A "${@}"
+    - kgd: kubectl get deployments "${@}"
+    - kgsts: kubectl get sts "${@}"
+    - kgrs: kubectl get rs "${@}"
+    - kgg: kubectl get "${1}" | grep "${2}"
+    - kgga: kubectl get "${1}" -A | grep "${2}"
+    - kns: |-
+        NAMESPACE="${1:-default}"
+        kubectl config set-context --current --namespace "${NAMESPACE}" && echo Successfully switched to namespace: \"${NAMESPACE}\"
+    - kl: kubectl logs "${@}"
+    - kll: kubectl logs -l "${@}"
+    - klp: kubectl logs --previous "${@}"
+    - klf: kubectl logs -f "${@}"
+    - kpf: kubectl port-forward "${@}"
+  resolverRef: function
