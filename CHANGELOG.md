@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/alexandremahdhaoui/vib/compare/v0.0.3...v0.0.4) (2023-10-08)
+
+
+### Bug Fixes
+
+* fixed goreleaser ([8931ad5](https://github.com/alexandremahdhaoui/vib/commit/8931ad5aa4c39fcb1394dcb831ec6d5c9c70e953))
+
 ## [0.0.3](https://github.com/alexandremahdhaoui/vib/compare/v0.0.2...v0.0.3) (2023-10-08)
 
 
