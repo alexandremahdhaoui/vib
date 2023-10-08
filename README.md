@@ -6,7 +6,7 @@ Vib (pronounced "vibe") allows users to intuitively manage their bash environmen
 ## Install vib
 
 ```shell
-go install github.com/alexandremahdhaoui/vib/cmd/vib@latest
+go install github.com/alexandremahdhaoui/vib/cmd/vib@v0.0.3
 vib --help
 ```
 
