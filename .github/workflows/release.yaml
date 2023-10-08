@@ -1,0 +1,20 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - release/**
+
+jobs:
+  release:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: alexandremahdhaoui/release@v0.2.1
+        with:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
