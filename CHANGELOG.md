@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/alexandremahdhaoui/vib/compare/v0.0.4...v0.0.5) (2024-11-25)
+
+
+### Bug Fixes
+
+* remove unecessary file ([049def5](https://github.com/alexandremahdhaoui/vib/commit/049def52cf337406b11249ed888a1ddd54f911d1))
+
 ## [0.0.4](https://github.com/alexandremahdhaoui/vib/compare/v0.0.3...v0.0.4) (2023-10-08)
 
 
