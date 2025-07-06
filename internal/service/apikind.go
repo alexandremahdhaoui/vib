@@ -14,36 +14,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vib
+package service
 
 import (
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
+	"errors"
+	"fmt"
+	"regexp"
 	"strings"
+
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/pkg/logger"
 )
 
-func ToPointer[T any](t T) *T {
-	value := t
-
-	return &value
-}
-
-func removeIndexFromSliceFast[T any](sl []T, i int) []T {
-	sl[i] = sl[len(sl)-1]
-	return sl[:len(sl)-1]
-}
-
-func Debug(v interface{}) {
-	logger.SugaredLoggerWithCallerSkip(1).Debugf("%#v", v)
-}
-
-func JoinLine(buffer string, line string) string {
-	if line == "" {
-		return buffer
+type (
+	Kind interface {
+		APIVersion() types.APIVersion
+		Kind() types.Kind
 	}
+)
 
-	if buffer == "" {
-		return line
+func NewAPIKind(apiVersion types.APIVersion, kind types.Kind) APIKind {
+	return &concreteAPIKind{
+		apiVersion: apiVersion,
+		kind:       kind,
 	}
+}
 
-	return strings.Join([]string{buffer, line}, "\n")
+type concreteAPIKind struct {
+	apiVersion types.APIVersion
+	kind       types.Kind
+}
+
+func (c *concreteAPIKind) APIVersion() types.APIVersion {
+	return c.apiVersion
+}
+
+func (c *concreteAPIKind) Kind() types.Kind {
+	return c.kind
 }

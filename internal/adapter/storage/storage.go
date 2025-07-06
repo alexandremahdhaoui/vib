@@ -14,94 +14,99 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package storageadapter
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/internal/util"
+
+	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 )
 
-type OperatorStrategy string
+type StorageStrategy string
 
 const (
-	FileSystemOperatorStrategy OperatorStrategy = "filesystem"
-	GitOperatorStrategy        OperatorStrategy = "git"
+	FileSystemStorageStrategy StorageStrategy = "filesystem"
+	GitStorageStrategy        StorageStrategy = "git"
 )
 
-type Operator interface {
-	Get(name *string) ([]ResourceDefinition, error)
-	Create(*ResourceDefinition) error
-	Update(name *string, v *ResourceDefinition) error
+type Storage interface {
+	Get(name *string) ([]types.Resource, error)
+	Create(*types.Resource) error
+	Update(name *string, v *types.Resource) error
 	Delete(name string) error
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// NewOperator
+// New
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewOperator(strategy OperatorStrategy, options ...any) (Operator, error) {
+func New(strategy StorageStrategy, options ...any) (Storage, error) {
 	switch strategy {
-	case FileSystemOperatorStrategy:
+	case FileSystemStorageStrategy:
 		if len(options) != 4 {
 			fmt.Printf("%#v", options)
-			return nil, logger.NewErrAndLog(
-				logger.ErrType,
-				fmt.Sprintf("wrong number of argument to construct FilesystemOperator; got: %d", len(options)),
+			return nil, flaterrors.Join(
+				types.ErrType,
+				fmt.Errorf(
+					"wrong number of argument to construct FilesystemStorage; got: %d",
+					len(options),
+				),
 			)
 		}
 
-		apiVersion, ok := options[0].(APIVersion)
+		apiVersion, ok := options[0].(types.APIVersion)
 		if !ok {
-			return nil, logger.NewErrAndLog(logger.ErrType, "apiVersion must be of type string")
+			return nil, flaterrors.Join(types.ErrType, "apiVersion must be of type string")
 		}
 
-		kind, ok := options[1].(Kind)
+		kind, ok := options[1].(types.Kind)
 		if !ok {
-			return nil, logger.NewErrAndLog(logger.ErrType, "kind must be of type string")
+			return nil, flaterrors.Join(types.ErrType, "kind must be of type string")
 		}
 
 		resourceDir, ok := options[2].(string)
 		if !ok {
-			return nil, logger.NewErrAndLog(logger.ErrType, "resourceDir must be of type string")
+			return nil, flaterrors.Join(types.ErrType, "resourceDir must be of type string")
 		}
 
-		encoding, ok := options[3].(Encoding)
+		encoding, ok := options[3].(util.Encoding)
 		if !ok {
-			return nil, logger.NewErrAndLog(logger.ErrType, "encoding must be of type Encoding")
+			return nil, flaterrors.Join(types.ErrType, "encoding must be of type Encoding")
 		}
 
-		return NewFilesystemOperator(apiVersion, kind, resourceDir, encoding)
-	case GitOperatorStrategy:
+		return NewFilesystem(apiVersion, kind, resourceDir, encoding)
+	case GitStorageStrategy:
 		// TODO implement me
 		panic("not implemented yet")
 	default:
-		err := fmt.Errorf("%w: operator strategy %q is not supported", logger.ErrType, strategy)
-		logger.Error(err)
-
+		err := fmt.Errorf("%w: operator strategy %q is not supported", types.ErrType, strategy)
 		return nil, err
 	}
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FilesystemOperator
+// FilesystemStorage
 //----------------------------------------------------------------------------------------------------------------------
 
-// FilesystemOperator operates T through the filesystem.
+// FilesystemStorage operates T through the filesystem.
 // Resources are stored on the filesystem using the following convention:
 // - Filename: {{ T.APIVersion() }}.{{ T.Kind() }}.{{ T.IMetadata().Name }}. {{ s.encoder.Encoding() }}
-type FilesystemOperator struct {
-	apiVersion  APIVersion
-	kind        Kind
+type FilesystemStorage struct {
+	apiVersion  types.APIVersion
+	kind        types.Kind
 	resourceDir string
-	encoder     Encoder
+	encoder     util.Encoder
 }
 
-func (s *FilesystemOperator) Get(name *string) ([]ResourceDefinition, error) {
-	res := make([]ResourceDefinition, 0)
+func (s *FilesystemStorage) Get(name *string) ([]types.Resource, error) {
+	res := make([]types.Resource, 0)
 	// if name is specified T with specified name exist, then we return a list of length one containing T
 	if name != nil {
 		// read can return a nil pointer
@@ -146,21 +151,30 @@ func (s *FilesystemOperator) Get(name *string) ([]ResourceDefinition, error) {
 }
 
 // Create should create only if file does not already exist.
-func (s *FilesystemOperator) Create(t *ResourceDefinition) error {
+func (s *FilesystemStorage) Create(t *types.Resource) error {
 	exist, err := resourceExist(s, t.Metadata.Name)
 	if err != nil {
 		return err
 	}
 
 	if exist {
-		return fmt.Errorf("%w: cannot create resource; apiVersion: %q, kind: %q, name: %q",
-			logger.ErrAlreadyExist, t.APIVersion, t.Kind, t.Metadata.Name)
+		return flaterrors.Join(
+			fmt.Errorf(
+				"apiVersion: %q, kind: %q, name: %q",
+				types.ErrExist,
+				t.APIVersion,
+				t.Kind,
+				t.Metadata.Name,
+			),
+			"cannot create resource",
+			types.ErrExist,
+		)
 	}
 
 	return s.write(t)
 }
 
-func (s *FilesystemOperator) Update(name *string, v *ResourceDefinition) error {
+func (s *FilesystemStorage) Update(name *string, v *types.Resource) error {
 	// This operation rename the object
 	if name != nil {
 		name := *name
@@ -176,15 +190,14 @@ func (s *FilesystemOperator) Update(name *string, v *ResourceDefinition) error {
 	return s.write(v)
 }
 
-func (s *FilesystemOperator) Delete(name string) error {
+func (s *FilesystemStorage) Delete(name string) error {
 	return os.Remove(s.filepathFromResourceName(name))
 }
 
 // list returns a list of reference to T.
-func (s *FilesystemOperator) list() ([]string, error) {
+func (s *FilesystemStorage) list() ([]string, error) {
 	dirEntries, err := os.ReadDir(s.resourceDir)
 	if err != nil {
-		logger.Error(err)
 		return nil, err
 	}
 
@@ -197,7 +210,6 @@ func (s *FilesystemOperator) list() ([]string, error) {
 
 	regex, err := regexp.Compile(r)
 	if err != nil {
-		logger.Error(err)
 		return nil, err
 	}
 
@@ -218,15 +230,15 @@ func (s *FilesystemOperator) list() ([]string, error) {
 // Warn: read can return a nil pointer if resource wasn't find
 // The reason read returns a possible nil pointer is to avoid raising an error if the file we're trying to read does not
 // exist.
-func (s *FilesystemOperator) read(path string) (*ResourceDefinition, error) {
-	if ok, err := fileExist(path); !ok {
+func (s *FilesystemStorage) read(path string) (*types.Resource, error) {
+	if ok, err := util.FileExist(path); !ok {
 		if err != nil {
 			return nil, err
 		}
 		return nil, nil
 	}
 
-	resource, err := ReadEncodedFile(path)
+	resource, err := util.ReadEncodedFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -235,39 +247,38 @@ func (s *FilesystemOperator) read(path string) (*ResourceDefinition, error) {
 }
 
 // readWithFilename makes a call to read
-func (s *FilesystemOperator) readWithFilename(name string) (*ResourceDefinition, error) {
+func (s *FilesystemStorage) readWithFilename(name string) (*types.Resource, error) {
 	return s.read(s.filepathFromFilename(name))
 }
 
 // readWithResourceName makes a call to read
-func (s *FilesystemOperator) readWithResourceName(name string) (*ResourceDefinition, error) {
+func (s *FilesystemStorage) readWithResourceName(name string) (*types.Resource, error) {
 	return s.read(s.filepathFromResourceName(name))
 }
 
 // write tries to write T to filesystem.
-func (s *FilesystemOperator) write(resource *ResourceDefinition) error {
+func (s *FilesystemStorage) write(resource *types.Resource) error {
 	path := s.filepathFromResourceName(resource.Metadata.Name)
-	logger.Debug(path)
 	// Ensures the base dir exist before trying to write into it.
-	if err := mkBaseDir(path); err != nil {
+	if err := util.MkBaseDir(path); err != nil {
 		return err
 	}
 
-	return WriteEncodedFile(path, resource)
+	return util.WriteEncodedFile(path, resource)
 }
 
 // filepathFromResourceName computes the resourceDir to the corresponding resource name, based on the naming convention
-func (s *FilesystemOperator) filepathFromFilename(name string) string {
+func (s *FilesystemStorage) filepathFromFilename(name string) string {
 	return filepath.Join(s.resourceDir, name)
 }
 
 // filepathFromResourceName computes the resourceDir to the corresponding resource name, based on the naming convention
-func (s *FilesystemOperator) filepathFromResourceName(name string) string {
+func (s *FilesystemStorage) filepathFromResourceName(name string) string {
 	return s.filepathFromFilename(s.filename(name))
 }
 
 // filepathFromResourceName computes the resource filename, based on the naming convention
-func (s *FilesystemOperator) filename(name string) string {
+func (s *FilesystemStorage) filename(name string) string {
 	return strings.ToLower(fmt.Sprintf(
 		"%s.%s.%s.%s",
 		cleanAPIVersionForFilesystem(s.apiVersion),
@@ -277,11 +288,15 @@ func (s *FilesystemOperator) filename(name string) string {
 	))
 }
 
-// NewFilesystemOperator instantiate a new strategy
-func NewFilesystemOperator(apiVersion APIVersion, kind Kind, resourceDir string, encoding Encoding) (*FilesystemOperator, error) { //nolint:lll
-	encoder, err := NewEncoder(encoding)
+// NewFilesystem instantiate a new strategy
+func NewFilesystem(
+	apiVersion types.APIVersion,
+	kind types.Kind,
+	resourceDir string,
+	encoding util.Encoding,
+) (*FilesystemStorage, error) { //nolint:lll
+	encoder, err := util.NewEncoder(encoding)
 	if err != nil {
-		logger.Error(err)
 		return nil, err
 	}
 
@@ -295,7 +310,7 @@ func NewFilesystemOperator(apiVersion APIVersion, kind Kind, resourceDir string,
 		return nil, err
 	}
 
-	return &FilesystemOperator{
+	return &FilesystemStorage{
 		apiVersion:  apiVersion,
 		kind:        kind,
 		resourceDir: resourceDir,
@@ -304,21 +319,21 @@ func NewFilesystemOperator(apiVersion APIVersion, kind Kind, resourceDir string,
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// GitOperator
+// GitStorage
 //----------------------------------------------------------------------------------------------------------------------
 
-// GitOperator uses FilesystemStrategy as a backend, and leverages Git for version control.
-type GitOperator struct {
-	innerStrategy FilesystemOperator
+// GitStorage uses FilesystemStrategy as a backend, and leverages Git for version control.
+type GitStorage struct {
+	innerStrategy FilesystemStorage
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// Operator Utils
+// Storage Utils
 //----------------------------------------------------------------------------------------------------------------------
 
 // resourceExist checks if a named resource already exist
-func resourceExist(operator Operator, name string) (bool, error) {
-	arr, err := operator.Get(ToPointer(name))
+func resourceExist(operator Storage, name string) (bool, error) {
+	arr, err := operator.Get(util.Ptr(name))
 	if err != nil {
 		return false, err
 	}
@@ -330,11 +345,11 @@ func resourceExist(operator Operator, name string) (bool, error) {
 	return true, nil
 }
 
-func defaultOperatorStrategy() OperatorStrategy {
-	return FileSystemOperatorStrategy
+func defaultStorageStrategy() StorageStrategy {
+	return FileSystemStorageStrategy
 }
 
 // cleanAPIVersionForFilesystem transforms `vib/v1alpha1` into `vib_v1alpha1`
-func cleanAPIVersionForFilesystem(s APIVersion) string {
+func cleanAPIVersionForFilesystem(s types.APIVersion) string {
 	return strings.ReplaceAll(string(s), "/", "_")
 }

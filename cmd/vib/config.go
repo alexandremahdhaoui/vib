@@ -17,13 +17,15 @@ limitations under the License.
 package main
 
 import (
-	"github.com/alexandremahdhaoui/vib"
-	"github.com/alexandremahdhaoui/vib/apis"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
-	"github.com/mitchellh/mapstructure"
 	"os"
 	"path/filepath"
+
+	storageadapter "github.com/alexandremahdhaoui/vib/internal/adapter/storage"
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/internal/util"
+	"github.com/alexandremahdhaoui/vib/pkg/apis"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -33,27 +35,28 @@ const (
 	resourcesPath = "resources"
 )
 
+const DefaultStorageStrategy = storageadapter.FileSystemStorageStrategy
+
 // ConfigSpec stores important information to run the vib command line.
 // The config is always stored on disk, thus the Operator for managing Config will always be of type
 // vib.FilesystemOperator.
 type ConfigSpec struct {
-	// OperatorStrategy defines which concrete implementation of vib.Operator should be used
-	OperatorStrategy api.OperatorStrategy
+	// StorageStrategy defines which storage strategy must be used (only filesystem is supported).
+	StorageStrategy storageadapter.StorageStrategy
 	// ResourceDir specifies the absolute path to Resource definitions.
 	// Defaults to CONFIG_DIR/vib/resources
 	ResourceDir string
 }
 
-func defaultConfig() (*api.ResourceDefinition, error) {
+func defaultConfig() (*types.Resource, error) {
 	resourceDir, err := defaultResourceDir()
 	if err != nil {
-		logger.Error(err)
 		return nil, err
 	}
 
-	return api.NewResourceDefinition(apis.V1Alpha1, configKind, configName, ConfigSpec{
-		OperatorStrategy: defaultOperatorStrategy(),
-		ResourceDir:      resourceDir,
+	return types.NewResource(apis.V1Alpha1, configKind, configName, ConfigSpec{
+		StorageStrategy: DefaultStorageStrategy,
+		ResourceDir:     resourceDir,
 	}), nil
 }
 
@@ -61,26 +64,29 @@ func defaultConfig() (*api.ResourceDefinition, error) {
 func readConfig(configDir *string) (*ConfigSpec, error) {
 	var err error
 	var cfgDir string
-	var resource *api.ResourceDefinition
+	var resource *types.Resource
 
 	if configDir != nil {
 		cfgDir = *configDir
 	} else {
 		cfgDir, err = vibConfigDir()
 		if err != nil {
-			logger.Error(err)
 			return nil, err
 		}
 	}
 
 	// Initiate FS strategy for reading the config
-	strategy, err := api.NewFilesystemOperator(apis.V1Alpha1, configKind, cfgDir, api.YAMLEncoding)
+	strategy, err := storageadapter.NewFilesystem(
+		apis.V1Alpha1,
+		configKind,
+		cfgDir,
+		util.YAMLEncoding,
+	)
 	if err != nil {
-		logger.Error(err)
 		return nil, err
 	}
 
-	resources, err := strategy.Get(vib.ToPointer(configName))
+	resources, err := strategy.Get(util.Ptr(configName))
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +131,4 @@ func defaultResourceDir() (string, error) {
 	}
 
 	return filepath.Join(path, resourcesPath), nil
-}
-
-func defaultOperatorStrategy() api.OperatorStrategy {
-	return api.FileSystemOperatorStrategy
 }

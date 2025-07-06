@@ -14,18 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vib
+package rendererservice
 
 import (
 	"fmt"
+
 	"github.com/alexandremahdhaoui/vib/apis"
 	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
+	"github.com/alexandremahdhaoui/vib/internal/util"
 	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"github.com/mitchellh/mapstructure"
 )
 
-func RenderExpressionSet(resource *api.ResourceDefinition, server api.APIServer) (string, error) {
+func RenderExpressionSet(resource *types.Resource, server api.APIServer) (string, error) {
 	switch resource.APIVersion {
 	case apis.V1Alpha1:
 		expressionSet := new(v1alpha1.ExpressionSetSpec)
@@ -56,7 +58,7 @@ func RenderExpressionSet(resource *api.ResourceDefinition, server api.APIServer)
 				return "", err
 			}
 
-			buffer = JoinLine(buffer, s)
+			buffer = util.JoinLine(buffer, s)
 		}
 
 		for _, keyValues := range expressionSet.KeyValues {
@@ -66,12 +68,15 @@ func RenderExpressionSet(resource *api.ResourceDefinition, server api.APIServer)
 					return "", err
 				}
 
-				buffer = JoinLine(buffer, s)
+				buffer = util.JoinLine(buffer, s)
 			}
 		}
 
 		return buffer, nil
 	default:
-		return "", logger.NewErrAndLog(logger.ErrType, fmt.Sprintf("APIVersion %q is not supported", resource.APIVersion))
+		return "", logger.NewErrAndLog(
+			logger.ErrType,
+			fmt.Sprintf("APIVersion %q is not supported", resource.APIVersion),
+		)
 	}
 }

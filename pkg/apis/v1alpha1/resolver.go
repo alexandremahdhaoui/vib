@@ -17,10 +17,28 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
-	"github.com/alexandremahdhaoui/vib/apis"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
+	"os/exec"
+	"strings"
+
+	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
+
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/internal/util"
 )
+
+var (
+	_ Resolver = &ResolverSpec{}
+	_ Resolver = &ExecResolverSpec{}
+	_ Resolver = &FmtResolverSpec{}
+	_ Resolver = &GotemplateResolverSpec{}
+	_ Resolver = util.Ptr(PlainResolverSpec(true))
+)
+
+type Resolver interface {
+	Resolve(key, value string) (string, error)
+}
 
 type FmtArgument string
 
@@ -40,45 +58,105 @@ const (
 	ValueFmtArgument FmtArgument = "value"
 )
 
-type (
-	ResolverSpec struct {
-		Type       string                  `json:"type"                 yaml:"type"`
-		Exec       *ExecResolverSpec       `json:"exec,omitempty"       yaml:"exec,omitempty"`
-		Fmt        *FmtResolverSpec        `json:"fmt,omitempty"        yaml:"fmt,omitempty"`
-		Plain      *PlainResolverSpec      `json:"plain,omitempty"      yaml:"plain,omitempty"`
-		GoTemplate *GotemplateResolverSpec `json:"gotemplate,omitempty" yaml:"gotemplate,omitempty"`
+type ResolverSpec struct {
+	Type       string                  `json:"type"                 yaml:"type"`
+	Exec       *ExecResolverSpec       `json:"exec,omitempty"       yaml:"exec,omitempty"`
+	Fmt        *FmtResolverSpec        `json:"fmt,omitempty"        yaml:"fmt,omitempty"`
+	Plain      *PlainResolverSpec      `json:"plain,omitempty"      yaml:"plain,omitempty"`
+	GoTemplate *GotemplateResolverSpec `json:"gotemplate,omitempty" yaml:"gotemplate,omitempty"`
+}
+
+func (r *ResolverSpec) Resolve(key string, value string) (string, error) {
+	if err := validateResolverSpec(r); err != nil {
+		return "", err
 	}
 
+	switch r.Type {
+	case ExecResolverType:
+		return r.Exec.Resolve(key, value)
+	case FmtResolverType:
+		return r.Fmt.Resolve(key, value)
+	case PlainResolverType:
+		return r.Plain.Resolve(key, value)
+	case GotemplateResolverType:
+		return r.GoTemplate.Resolve(key, value)
+	default:
+		return "", flaterrors.Join(
+			types.ErrType,
+			fmt.Errorf("Resolver type %q is not supported", r.Type),
+		)
+	}
+}
+
+type (
 	ExecResolverSpec struct {
-		Command string   `json:"command" yaml:"command"`
+		Command string   `json:"command"        yaml:"command"`
 		Args    []string `json:"args,omitempty" yaml:"args,omitempty"`
 
-		// Stdin is a format-able
+		// Stdin can be formatted
+		// WARN: What?
 		Stdin string `json:"stdin,omitempty" yaml:"stdin,omitempty"`
 	}
 
 	FmtResolverSpec struct {
-		Template string `json:"template" yaml:"template"`
+		Template string `json:"template"     yaml:"template"`
 		// FmtArguments is a list of FmtArgument, that will be used to format the template
 		FmtArguments []FmtArgument `json:"fmtArguments" yaml:"fmtArguments"`
 	}
 
-	PlainResolverSpec bool
-
 	GotemplateResolverSpec struct {
 		Template string `json:"template" yaml:"template"`
 	}
+
+	PlainResolverSpec bool
 )
 
-func NewResolver(name string, spec ResolverSpec) (*api.ResourceDefinition, error) {
+func (r *ExecResolverSpec) Resolve(key, value string) (string, error) {
+	// TODO: implement me
+	cmd := exec.Command(r.Command, append(r.Args, key, value)...)
+	cmd.Stdin = strings.NewReader(r.Stdin)
+
+	_, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	panic("ResolveExec is not yet supported; use of keys & values is not implemented yet")
+	// return string(out), nil
+}
+
+func (r *FmtResolverSpec) Resolve(key string, value string) (string, error) {
+	args := make([]any, 0)
+	for _, fmtArg := range r.FmtArguments {
+		var arg string
+		if fmtArg == KeyFmtArgument {
+			arg = key
+		} else {
+			arg = value
+		}
+		args = append(args, arg)
+	}
+	return fmt.Sprintf(r.Template, args...), nil
+}
+
+func (r *GotemplateResolverSpec) Resolve(key string, value string) (string, error) {
+	// TODO: Implement Me!
+	panic("unimplemented")
+}
+
+func (r PlainResolverSpec) Resolve(key string, value string) (string, error) {
+	return key, nil
+}
+
+func NewResolver(name string, spec ResolverSpec) (*types.Resource, error) {
 	if err := validateResolverSpec(&spec); err != nil {
 		return nil, err
 	}
 
-	return &api.ResourceDefinition{
-			APIVersion: apis.V1Alpha1,
-			Kind:       apis.ResolverKind,
-			Metadata:   api.NewMetadata(name),
+	return &types.Resource{
+			APIVersion: V1Alpha1,
+			Kind:       ResolverKind,
+			Metadata:   types.NewMetadata(name),
 			Spec:       spec,
 		},
 		nil
@@ -112,12 +190,12 @@ func validateResolverSpec(spec *ResolverSpec) error {
 // PlainResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func PlainResolver() (*api.ResourceDefinition, error) {
+func NewPlainResolver() (*types.Resource, error) {
 	return NewResolver(
 		PlainResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
 			Type:  PlainResolverRef,
-			Plain: api.ToPointer(PlainResolverSpec(true)),
+			Plain: util.Ptr(PlainResolverSpec(true)),
 		},
 	)
 }
@@ -126,7 +204,7 @@ func PlainResolver() (*api.ResourceDefinition, error) {
 // FunctionResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func FunctionResolver() (*api.ResourceDefinition, error) {
+func NewFunctionResolver() (*types.Resource, error) {
 	return NewResolver(
 		FunctionResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -143,7 +221,7 @@ func FunctionResolver() (*api.ResourceDefinition, error) {
 // AliasResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func AliasResolver() (*api.ResourceDefinition, error) {
+func NewAliasResolver() (*types.Resource, error) {
 	return NewResolver(
 		AliasResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -160,7 +238,7 @@ func AliasResolver() (*api.ResourceDefinition, error) {
 // EnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func EnvironmentResolver() (*api.ResourceDefinition, error) {
+func NewEnvironmentResolver() (*types.Resource, error) {
 	return NewResolver(
 		EnvironmentResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -177,7 +255,7 @@ func EnvironmentResolver() (*api.ResourceDefinition, error) {
 // ExportedEnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func ExportedEnvironmentResolver() (*api.ResourceDefinition, error) {
+func NewExportedEnvironmentResolver() (*types.Resource, error) {
 	return NewResolver(
 		ExportedEnvironmentResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -188,4 +266,28 @@ func ExportedEnvironmentResolver() (*api.ResourceDefinition, error) {
 			},
 		},
 	)
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// GetDefaultResolver
+//
+// This list of resolver is used to populate the ~/.config/vib/resources directory on init.
+//----------------------------------------------------------------------------------------------------------------------
+
+func GetDefaultResolver() ([]*types.Resource, error) {
+	results := make([]*types.Resource, 0)
+	for _, f := range []func() (*types.Resource, error){
+		NewPlainResolver,
+		NewFunctionResolver,
+		NewAliasResolver,
+		NewEnvironmentResolver,
+		NewExportedEnvironmentResolver,
+	} {
+		resource, err := f()
+		if err != nil {
+			return nil, flaterrors.Join(err, errors.New("fetching default resolvers"))
+		}
+		results = append(results, resource)
+	}
+	return results, nil
 }

@@ -1,0 +1,22 @@
+---
+TODOs:
+  documentation:
+    - Add a section guiding through the initial setup
+    - Add usage and getting started section
+    - Add more example
+  code:
+    - Add the "file" resolver:
+        - FileResolver allow specifying a list of script by path or directory.
+        - These script can then be added
+    - Move `render*.go` files to internal/service/rendererservice
+    - Remove of `urface/cli` -> use
+    - Depend on the list amount of packages (hopefully only kubernetes' yamlv3 package)
+    - refactor internal/
+    - refactor cmd/
+    - Refactor APIServer:
+        - Must register APIs
+        - Must match an APIVersion to a Resolver
+    - Refactor Resolvers:
+        - Must take some argument and return a response.
+        - An API can be constructed from a Resolver
+

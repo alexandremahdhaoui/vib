@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package server
 
 import (
 	"fmt"
+
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 )
 
@@ -155,7 +156,11 @@ func (l *localAPIServer) Unregister(apiVersion APIVersion, kind Kind) error {
 	return nil
 }
 
-func (l *localAPIServer) Get(apiVersion *APIVersion, kind Kind, name *string) ([]ResourceDefinition, error) {
+func (l *localAPIServer) Get(
+	apiVersion *APIVersion,
+	kind Kind,
+	name *string,
+) ([]ResourceDefinition, error) {
 	err := ValidateAPIVersionPtr(apiVersion)
 	if err != nil {
 		return nil, err
@@ -238,7 +243,12 @@ func (l *localAPIServer) Create(resource *ResourceDefinition) error {
 	return apiKinds[0].Operator().Create(resource) //nolint:wrapcheck
 }
 
-func (l *localAPIServer) Update(apiVersion *APIVersion, kind Kind, name string, resource *ResourceDefinition) error {
+func (l *localAPIServer) Update(
+	apiVersion *APIVersion,
+	kind Kind,
+	name string,
+	resource *ResourceDefinition,
+) error {
 	err := ValidateAPIVersionPtr(apiVersion)
 	if err != nil {
 		return err

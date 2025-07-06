@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vib
+package rendererservice
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib/apis"
+
+	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
+
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -51,6 +51,9 @@ func RenderExpression(resource *api.ResourceDefinition, server api.APIServer) (s
 
 		return Resolve(&results[0], expression.Key, expression.Value)
 	default:
-		return "", logger.NewErrAndLog(logger.ErrType, fmt.Sprintf("APIVersion %q is not supported", resource.APIVersion))
+		return "", flaterrors.Join(
+			logger.ErrType,
+			fmt.Errorf("APIVersion %q is not supported", resource.APIVersion),
+		)
 	}
 }

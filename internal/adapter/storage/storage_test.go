@@ -14,17 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package storageadapter_test
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib"
-	"github.com/alexandremahdhaoui/vib/apis"
-	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/pkg/apis"
+	"github.com/alexandremahdhaoui/vib/pkg/apis/v1alpha1"
 )
 
 const TestingFolder = "/tmp/vib-test"
@@ -47,7 +48,12 @@ func folder(t *testing.T) func() {
 func strategy(t *testing.T) *FilesystemOperator {
 	t.Helper()
 
-	strategy, err := NewFilesystemOperator(apis.V1Alpha1, apis.ExpressionKind, TestingFolder, YAMLEncoding)
+	strategy, err := NewFilesystemOperator(
+		apis.V1Alpha1,
+		apis.ExpressionKind,
+		TestingFolder,
+		YAMLEncoding,
+	)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +84,13 @@ func writeExpressions(t *testing.T, exps []*ResourceDefinition) {
 	for _, exp := range exps {
 		fp := filepath.Join(
 			TestingFolder,
-			fmt.Sprintf("%s.%s.%s.%s", cleanAPIVersionForFilesystem(exp.APIVersion), exp.Kind, exp.Metadata.Name, YAMLEncoding),
+			fmt.Sprintf(
+				"%s.%s.%s.%s",
+				cleanAPIVersionForFilesystem(exp.APIVersion),
+				exp.Kind,
+				exp.Metadata.Name,
+				YAMLEncoding,
+			),
 		)
 
 		err := WriteEncodedFile(fp, *exp)
@@ -137,7 +149,13 @@ func TestFilesystemOperatorStrategy_Create(t *testing.T) {
 
 		fp := filepath.Join(
 			TestingFolder,
-			fmt.Sprintf("%s.%s.%s.%s", cleanAPIVersionForFilesystem(exp.APIVersion), exp.Kind, exp.Metadata.Name, YAMLEncoding),
+			fmt.Sprintf(
+				"%s.%s.%s.%s",
+				cleanAPIVersionForFilesystem(exp.APIVersion),
+				exp.Kind,
+				exp.Metadata.Name,
+				YAMLEncoding,
+			),
 		)
 
 		got, err := ReadEncodedFile(fp)

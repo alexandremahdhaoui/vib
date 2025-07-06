@@ -18,14 +18,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
-	"github.com/urfave/cli/v2"
-	"gopkg.in/yaml.v3"
 	"io"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/alexandremahdhaoui/vib/pkg/api"
+	"github.com/alexandremahdhaoui/vib/pkg/logger"
+	"github.com/urfave/cli/v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -68,7 +69,10 @@ func ParseResourceNamesFromArgs(cctx *cli.Context) []string {
 	results := make([]string, 0)
 	for _, name := range cctx.Args().Slice()[1:] {
 		if !regex.MatchString(name) {
-			_ = logger.NewErrAndLog(logger.ErrType, fmt.Sprintf("resource name %q is not supported", name))
+			_ = logger.NewErrAndLog(
+				logger.ErrType,
+				fmt.Sprintf("resource name %q is not supported", name),
+			)
 
 			return nil
 		}

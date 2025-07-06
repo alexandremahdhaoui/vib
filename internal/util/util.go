@@ -14,16 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package util
 
 import (
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/alexandremahdhaoui/vib/pkg/logger"
 )
 
-func fileExist(path string) (bool, error) {
-	err := mkBaseDir(path)
+func FileExist(path string) (bool, error) {
+	err := MkBaseDir(path)
 	if err != nil {
 		return false, err
 	}
@@ -41,7 +43,7 @@ func fileExist(path string) (bool, error) {
 	return true, nil
 }
 
-func mkBaseDir(path string) error {
+func MkBaseDir(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
 		logger.Error(err)
 		return err
@@ -49,8 +51,23 @@ func mkBaseDir(path string) error {
 	return nil
 }
 
-func ToPointer[T any](t T) *T {
-	value := t
+func Ptr[T any](t T) *T {
+	return &t
+}
 
-	return &value
+func RemoveIndexFromSlice[T any](sl []T, i int) []T {
+	sl[i] = sl[len(sl)-1]
+	return sl[:len(sl)-1]
+}
+
+func JoinLine(buffer string, line string) string {
+	if line == "" {
+		return buffer
+	}
+
+	if buffer == "" {
+		return line
+	}
+
+	return strings.Join([]string{buffer, line}, "\n")
 }

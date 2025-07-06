@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vib
+package rendererservice
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib/apis"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
+
+	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/pkg/apis"
 )
 
 type Resolver interface {
@@ -28,10 +29,20 @@ type Resolver interface {
 }
 
 type Renderer interface {
-	Render(server api.APIServer) (string, error)
+	Render(server adapter.APIServer) (string, error)
 }
 
-func Render(resource *api.ResourceDefinition, server api.APIServer) (string, error) {
+func Render(resource *types.Resource, server api.APIServer) (string, error) {
+	// TODO: This must be automated by registering the APIVersions in main.
+	//       And registering the Kinds to the APIVersion in pkg/apis/v1alpha1.
+	switch resource.APIVersion {
+	case apis.V1Alpha1:
+	case default:
+	}
+
+	// WARN: this is terrible
+	// TODO: we must first check the APIVersion then check the kind
+
 	switch resource.Kind {
 	case apis.ProfileKind:
 		return RenderProfile(resource, server)
@@ -42,6 +53,9 @@ func Render(resource *api.ResourceDefinition, server api.APIServer) (string, err
 	case apis.ExpressionSetKind:
 		return RenderExpressionSet(resource, server)
 	default:
-		return "", logger.NewErrAndLog(logger.ErrType, fmt.Sprintf("Kind %q does not support Render", resource.Kind))
+		return "", flaterrors.Join(
+			types.ErrType,
+			fmt.Errorf("Kind %q does not support Render", resource.Kind),
+		)
 	}
 }

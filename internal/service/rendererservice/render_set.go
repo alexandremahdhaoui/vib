@@ -14,47 +14,51 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vib
+package rendererservice
 
 import (
+	"errors"
 	"fmt"
-	"github.com/alexandremahdhaoui/vib/apis"
+
 	"github.com/alexandremahdhaoui/vib/apis/v1alpha1"
+	"github.com/alexandremahdhaoui/vib/internal/types"
 	"github.com/alexandremahdhaoui/vib/pkg/api"
+	"github.com/alexandremahdhaoui/vib/pkg/apis"
 	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"github.com/mitchellh/mapstructure"
 )
 
-func RenderProfile(resource *api.ResourceDefinition, server api.APIServer) (string, error) {
+func RenderSet(resource *types.Resource, server api.APIServer) (string, error) {
 	switch resource.APIVersion {
 	case apis.V1Alpha1:
-		profile := new(v1alpha1.ProfileSpec)
-		err := mapstructure.Decode(resource.Spec, profile)
+		set := new(v1alpha1.SetSpec)
+		err := mapstructure.Decode(resource.Spec, set)
 		if err != nil {
 			return "", err
 		}
 
 		buffer := ""
-		for _, ref := range profile.SetRefs {
-			if err = api.ValidateResourceName(ref); err != nil {
+		for _, expressionRef := range set.ExpressionRefs {
+			if err = api.ValidateResourceName(expressionRef); err != nil {
 				return "", err
 			}
 
 			results := make([]api.ResourceDefinition, 0)
 			supportedKinds := []api.Kind{
-				apis.SetKind,
 				apis.ExpressionSetKind,
+				apis.ExpressionKind,
 			}
 			for _, supportedKind := range supportedKinds {
-				res, err := server.Get(nil, supportedKind, &ref)
+				res, err := server.Get(nil, supportedKind, &expressionRef)
 				if err != nil {
 					return "", err
 				}
+
 				results = append(results, res...)
 			}
 
 			if len(results) == 0 {
-				return "", api.ErrReference(ref,
+				return "", api.ErrReference(expressionRef,
 					api.Kind(fmt.Sprintf("%#v", supportedKinds)))
 			}
 
@@ -68,6 +72,9 @@ func RenderProfile(resource *api.ResourceDefinition, server api.APIServer) (stri
 
 		return buffer, nil
 	default:
-		return "", logger.NewErrAndLog(logger.ErrType, fmt.Sprintf("APIVersion %q is not supported", resource.APIVersion))
+		return "", errors.Join(
+			logger.ErrType,
+			fmt.Errorf("APIVersion %q is not supported", resource.APIVersion),
+		)
 	}
 }

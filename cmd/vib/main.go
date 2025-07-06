@@ -18,12 +18,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/alexandremahdhaoui/vib"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
-	"github.com/urfave/cli/v2"
-	"gopkg.in/yaml.v3"
+	"log/slog"
 	"os"
+
+	"github.com/alexandremahdhaoui/vib"
+	"github.com/alexandremahdhaoui/vib/internal/util"
+	"github.com/alexandremahdhaoui/vib/pkg/api"
+	"github.com/urfave/cli/v2"
+	"go.yaml.in/yaml/v3"
 )
 
 const (
@@ -43,14 +45,19 @@ const (
 	selectorCategory = "Selectors"
 )
 
-var appVersion = "dev" //nolint:gochecknoglobals
+var appVersion = "1.0.0" //nolint:gochecknoglobals
 
 func main() {
-	logger.New(false)
+	// -- new main
 
+	// . Get Storage
+	// . Get Resolvers
+	// . Create api server
+
+	// -- remove below
 	app := &cli.App{ //nolint:exhaustruct,exhaustivestruct
 		Name:    cliName,
-		Usage:   "vib (pronounced \"vibe\") allows users to intuitively manage their bash environment across all their platforms.", //nolint:lll
+		Usage:   `vib (pronounced \"vibe\") allows users to intuitively manage their bash environment across all their platforms.`, //nolint:lll
 		Version: appVersion,
 		Commands: cli.Commands{
 			// Basic Commands
@@ -66,7 +73,8 @@ func main() {
 		Flags: []cli.Flag{debugFlag()},
 	}
 	if err := app.Run(os.Args); err != nil {
-		logger.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -80,7 +88,6 @@ func Get() *cli.Command {
 		Usage:    "Display one or many resources",
 		Category: basicCategory,
 		Action: func(cctx *cli.Context) error {
-
 			server, err := fastInit()
 			if err != nil {
 				return err
@@ -255,7 +262,12 @@ func Apply() *cli.Command {
 				return err
 			}
 
-			err = apiServer.Update(&resource.APIVersion, resource.Kind, resource.Metadata.Name, resource)
+			err = apiServer.Update(
+				&resource.APIVersion,
+				resource.Kind,
+				resource.Metadata.Name,
+				resource,
+			)
 			if err != nil {
 				return err
 			}
@@ -295,7 +307,7 @@ func Render() *cli.Command {
 					return err
 				}
 
-				buffer = vib.JoinLine(buffer, s)
+				buffer = util.JoinLine(buffer, s)
 
 			}
 
