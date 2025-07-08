@@ -16,7 +16,90 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/internal/util"
+)
+
 type ProfileSpec struct {
-	// SetRefs is a list of reference to vib.Set.
-	SetRefs []string `json:"setRefs" yaml:"setRefs"`
+	// Refs is a list of reference to Expression or ExpressionSet
+	// TODO: ExpressionRefs must be validated to ensure no duplication.
+	// Name duplication would yield unexpected behavior
+	Refs []string `json:"refs" yaml:"setRefs"`
+}
+
+// APIVersion implements types.DefinedResource.
+func (p ProfileSpec) APIVersion() types.APIVersion {
+	return APIVersion
+}
+
+// Kind implements types.DefinedResource.
+func (p ProfileSpec) Kind() types.Kind {
+	return ProfileKind
+}
+
+// Render implements types.Renderer.
+func (p *ProfileSpec) Render(apiServer types.APIServer) (string, error) {
+	refs := make(map[string]string, len(p.Refs))
+	for _, ref := range p.Refs {
+		// TODO: validate refs resource names?
+		// if err = api.ValidateResourceName(ref); err != nil {
+		refs[ref] = ""
+	}
+
+	// -- Expressions
+	eStorage, err := types.GetTypedStorage[ExpressionSpec](apiServer)
+	if err != nil {
+		return "", err
+	}
+
+	eList, err := eStorage.List()
+	if err != nil {
+		return "", err
+	}
+
+	for _, e := range eList {
+		if _, ok := refs[e.Metadata.Name]; !ok {
+			continue
+		}
+
+		s, err := e.Spec.Render(apiServer)
+		if err != nil {
+			return "", err
+		}
+
+		refs[e.Metadata.Name] = s
+	}
+
+	// -- Expression sets
+	esStorage, err := types.GetTypedStorage[ExpressionSetSpec](apiServer)
+	if err != nil {
+		return "", err
+	}
+
+	esList, err := esStorage.List()
+	if err != nil {
+		return "", err
+	}
+
+	for _, es := range esList {
+		if _, ok := refs[es.Metadata.Name]; !ok {
+			continue
+		}
+
+		s, err := es.Spec.Render(apiServer)
+		if err != nil {
+			return "", err
+		}
+
+		refs[es.Metadata.Name] = s
+	}
+
+	buf := ""
+	for _, ref := range p.Refs {
+		buf = util.JoinLine(buf, refs[ref])
+		delete(refs, ref)
+	}
+
+	return buf, nil
 }

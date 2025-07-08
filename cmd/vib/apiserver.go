@@ -19,14 +19,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
-
-	resolveradapter "github.com/alexandremahdhaoui/vib/internal/adapter/resolver"
 	storageadapter "github.com/alexandremahdhaoui/vib/internal/adapter/storage"
-
-	"github.com/alexandremahdhaoui/vib/internal/service"
 	"github.com/alexandremahdhaoui/vib/internal/types"
-	"github.com/alexandremahdhaoui/vib/pkg/apis"
+	"github.com/alexandremahdhaoui/vib/pkg/apis/v1alpha1"
+
+	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 )
 
 func NewAPIServer(apiKinds []service.APIKind) (service.APIServer, error) {
@@ -68,11 +65,11 @@ func APIKinds(config *ConfigSpec) ([]service.APIKind, error) {
 		APIVersion types.APIVersion
 		Kind       types.Kind
 	}{
-		{apis.V1Alpha1, apis.ProfileKind},
-		{apis.V1Alpha1, apis.SetKind},
-		{apis.V1Alpha1, apis.ExpressionKind},
-		{apis.V1Alpha1, apis.ExpressionSetKind},
-		{apis.V1Alpha1, apis.ResolverKind},
+		{v1alpha1.APIVersion, v1alpha1.ProfileKind},
+		{v1alpha1.APIVersion, v1alpha1.SetKind},
+		{v1alpha1.APIVersion, v1alpha1.ExpressionKind},
+		{v1alpha1.APIVersion, v1alpha1.ExpressionSetKind},
+		{v1alpha1.APIVersion, v1alpha1.ResolverKind},
 	} {
 		// WARN: this is terrible
 		storage, err := factory(x.APIVersion, x.Kind)

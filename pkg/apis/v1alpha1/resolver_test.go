@@ -29,7 +29,7 @@ import (
 func TestResolverSpec_Render(t *testing.T) {
 	for _, tc := range []struct {
 		Name       string
-		Resource   *types.Resource
+		Resource   *types.Resource[v1alpha1.Resolver]
 		Key, Value string
 		Want       string
 	}{

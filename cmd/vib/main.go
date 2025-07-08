@@ -21,9 +21,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/alexandremahdhaoui/vib"
 	"github.com/alexandremahdhaoui/vib/internal/util"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
 	"github.com/urfave/cli/v2"
 	"go.yaml.in/yaml/v3"
 )

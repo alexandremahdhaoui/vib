@@ -23,8 +23,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alexandremahdhaoui/vib"
-	"github.com/alexandremahdhaoui/vib/pkg/apis"
 	"github.com/alexandremahdhaoui/vib/pkg/apis/v1alpha1"
 )
 

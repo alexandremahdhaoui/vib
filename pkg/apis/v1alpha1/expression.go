@@ -16,8 +16,38 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	"github.com/alexandremahdhaoui/vib/internal/types"
+)
+
 type ExpressionSpec struct {
 	Key         string `json:"key"         yaml:"key"`
 	Value       string `json:"value"       yaml:"value"`
 	ResolverRef string `json:"resolverRef" yaml:"resolverRef"`
+}
+
+// APIVersion implements types.DefinedResource.
+func (e ExpressionSpec) APIVersion() types.APIVersion {
+	return APIVersion
+}
+
+// Kind implements types.DefinedResource.
+func (e ExpressionSpec) Kind() types.Kind {
+	return ExpressionKind
+}
+
+// Render implements types.Renderer.
+func (e *ExpressionSpec) Render(apiServer types.APIServer) (string, error) {
+	// TODO: validate resource name (e.ResolverRef must be valid)
+	storage, err := types.GetTypedStorage[ResolverSpec](apiServer)
+	if err != nil {
+		return "", err
+	}
+
+	resolver, err := storage.Get(e.ResolverRef)
+	if err != nil {
+		return "", err
+	}
+
+	return resolver.Spec.Resolve(e.Key, e.Value)
 }

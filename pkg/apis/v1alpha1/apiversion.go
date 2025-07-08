@@ -25,18 +25,23 @@ const (
 	ResolverKind      types.Kind = "Resolver"
 	ProfileKind       types.Kind = "Profile"
 
-	V1Alpha1 types.APIVersion = "vib.alexandre.mahdhaoui.com/v1alpha1"
+	APIVersion types.APIVersion = "vib.alexandre.mahdhaoui.com/v1alpha1"
 )
 
-func RegisterToServer(server types.APIServer) {
-	server.Register(
-		V1Alpha1,
-		map[types.Kind]func() any{
-			ExpressionKind:    func() any { return ExpressionSpec{} },
-			ExpressionSetKind: func() any { return ExpressionSetSpec{} },
-			SetKind:           func() any { return SetSpec{} },
-			ResolverKind:      func() any { return ResolverSpec{} },
-			ProfileKind:       func() any { return ProfileSpec{} },
-		},
-	)
+var (
+	_ types.APIVersionKind = ExpressionSpec{}
+	_ types.APIVersionKind = ExpressionSetSpec{}
+	_ types.APIVersionKind = ResolverSpec{}
+	_ types.APIVersionKind = ProfileSpec{}
+)
+
+var kindMap = map[types.Kind]func() types.APIVersionKind{
+	ExpressionKind:    func() types.APIVersionKind { return &ExpressionSpec{} },
+	ExpressionSetKind: func() types.APIVersionKind { return &ExpressionSetSpec{} },
+	ResolverKind:      func() types.APIVersionKind { return &ResolverSpec{} },
+	ProfileKind:       func() types.APIVersionKind { return &ProfileSpec{} },
+}
+
+func RegisterWithManager(mgr types.APIServer) {
+	mgr.Register(APIVersion, kindMap)
 }

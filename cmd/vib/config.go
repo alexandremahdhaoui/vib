@@ -23,9 +23,6 @@ import (
 	storageadapter "github.com/alexandremahdhaoui/vib/internal/adapter/storage"
 	"github.com/alexandremahdhaoui/vib/internal/types"
 	"github.com/alexandremahdhaoui/vib/internal/util"
-	"github.com/alexandremahdhaoui/vib/pkg/apis"
-
-	"github.com/mitchellh/mapstructure"
 )
 
 const (

@@ -20,8 +20,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
 )
 
 func FileExist(path string) (bool, error) {
@@ -35,7 +33,6 @@ func FileExist(path string) (bool, error) {
 		if os.IsNotExist(err) {
 			return false, nil
 		} else {
-			logger.Error(err)
 			return false, err
 		}
 	}
@@ -45,7 +42,6 @@ func FileExist(path string) (bool, error) {
 
 func MkBaseDir(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
-		logger.Error(err)
 		return err
 	}
 	return nil

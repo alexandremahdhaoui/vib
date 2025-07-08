@@ -66,7 +66,22 @@ type ResolverSpec struct {
 	GoTemplate *GotemplateResolverSpec `json:"gotemplate,omitempty" yaml:"gotemplate,omitempty"`
 }
 
-func (r *ResolverSpec) Resolve(key string, value string) (string, error) {
+// APIVersion implements types.DefinedResource.
+func (r ResolverSpec) APIVersion() types.APIVersion {
+	return APIVersion
+}
+
+// Kind implements types.DefinedResource.
+func (r ResolverSpec) Kind() types.Kind {
+	return ResolverKind
+}
+
+// Render implements types.Renderer.
+func (r ResolverSpec) Render(types.APIServer) (string, error) {
+	panic("unimplemented")
+}
+
+func (r ResolverSpec) Resolve(key string, value string) (string, error) {
 	if err := validateResolverSpec(r); err != nil {
 		return "", err
 	}
@@ -111,7 +126,7 @@ type (
 	PlainResolverSpec bool
 )
 
-func (r *ExecResolverSpec) Resolve(key, value string) (string, error) {
+func (r ExecResolverSpec) Resolve(key, value string) (string, error) {
 	// TODO: implement me
 	cmd := exec.Command(r.Command, append(r.Args, key, value)...)
 	cmd.Stdin = strings.NewReader(r.Stdin)
@@ -125,7 +140,7 @@ func (r *ExecResolverSpec) Resolve(key, value string) (string, error) {
 	// return string(out), nil
 }
 
-func (r *FmtResolverSpec) Resolve(key string, value string) (string, error) {
+func (r FmtResolverSpec) Resolve(key string, value string) (string, error) {
 	args := make([]any, 0)
 	for _, fmtArg := range r.FmtArguments {
 		var arg string
@@ -139,8 +154,8 @@ func (r *FmtResolverSpec) Resolve(key string, value string) (string, error) {
 	return fmt.Sprintf(r.Template, args...), nil
 }
 
-func (r *GotemplateResolverSpec) Resolve(key string, value string) (string, error) {
-	// TODO: Implement Me!
+func (r GotemplateResolverSpec) Resolve(key string, value string) (string, error) {
+	// TODO: implement me
 	panic("unimplemented")
 }
 
@@ -148,13 +163,13 @@ func (r PlainResolverSpec) Resolve(key string, value string) (string, error) {
 	return key, nil
 }
 
-func NewResolver(name string, spec ResolverSpec) (*types.Resource, error) {
-	if err := validateResolverSpec(&spec); err != nil {
-		return nil, err
+func NewResolver(name string, spec ResolverSpec) (types.Resource[Resolver], error) {
+	if err := validateResolverSpec(spec); err != nil {
+		return types.Resource[Resolver]{}, err
 	}
 
-	return &types.Resource{
-			APIVersion: V1Alpha1,
+	return types.Resource[Resolver]{
+			APIVersion: APIVersion,
 			Kind:       ResolverKind,
 			Metadata:   types.NewMetadata(name),
 			Spec:       spec,
@@ -162,7 +177,7 @@ func NewResolver(name string, spec ResolverSpec) (*types.Resource, error) {
 		nil
 }
 
-func validateResolverSpec(spec *ResolverSpec) error {
+func validateResolverSpec(spec ResolverSpec) error {
 	switch spec.Type {
 	case ExecResolverType:
 		if spec.Exec == nil {
@@ -187,10 +202,34 @@ func validateResolverSpec(spec *ResolverSpec) error {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// GetDefaultResolver
+//
+// This list of resolver is used to populate the ~/.config/vib/resources directory on init.
+//----------------------------------------------------------------------------------------------------------------------
+
+func GetDefaultResolver() ([]types.Resource[Resolver], error) {
+	results := make([]types.Resource[Resolver], 0)
+	for _, f := range []func() (types.Resource[Resolver], error){
+		NewPlainResolver,
+		NewFunctionResolver,
+		NewAliasResolver,
+		NewEnvironmentResolver,
+		NewExportedEnvironmentResolver,
+	} {
+		resource, err := f()
+		if err != nil {
+			return nil, flaterrors.Join(err, errors.New("fetching default resolvers"))
+		}
+		results = append(results, resource)
+	}
+	return results, nil
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // PlainResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewPlainResolver() (*types.Resource, error) {
+func NewPlainResolver() (types.Resource[Resolver], error) {
 	return NewResolver(
 		PlainResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -204,7 +243,7 @@ func NewPlainResolver() (*types.Resource, error) {
 // FunctionResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewFunctionResolver() (*types.Resource, error) {
+func NewFunctionResolver() (types.Resource[Resolver], error) {
 	return NewResolver(
 		FunctionResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -221,7 +260,7 @@ func NewFunctionResolver() (*types.Resource, error) {
 // AliasResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewAliasResolver() (*types.Resource, error) {
+func NewAliasResolver() (types.Resource[Resolver], error) {
 	return NewResolver(
 		AliasResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -238,7 +277,7 @@ func NewAliasResolver() (*types.Resource, error) {
 // EnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewEnvironmentResolver() (*types.Resource, error) {
+func NewEnvironmentResolver() (types.Resource[Resolver], error) {
 	return NewResolver(
 		EnvironmentResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -255,7 +294,7 @@ func NewEnvironmentResolver() (*types.Resource, error) {
 // ExportedEnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewExportedEnvironmentResolver() (*types.Resource, error) {
+func NewExportedEnvironmentResolver() (types.Resource[Resolver], error) {
 	return NewResolver(
 		ExportedEnvironmentResolverRef,
 		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
@@ -266,28 +305,4 @@ func NewExportedEnvironmentResolver() (*types.Resource, error) {
 			},
 		},
 	)
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// GetDefaultResolver
-//
-// This list of resolver is used to populate the ~/.config/vib/resources directory on init.
-//----------------------------------------------------------------------------------------------------------------------
-
-func GetDefaultResolver() ([]*types.Resource, error) {
-	results := make([]*types.Resource, 0)
-	for _, f := range []func() (*types.Resource, error){
-		NewPlainResolver,
-		NewFunctionResolver,
-		NewAliasResolver,
-		NewEnvironmentResolver,
-		NewExportedEnvironmentResolver,
-	} {
-		resource, err := f()
-		if err != nil {
-			return nil, flaterrors.Join(err, errors.New("fetching default resolvers"))
-		}
-		results = append(results, resource)
-	}
-	return results, nil
 }

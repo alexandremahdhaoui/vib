@@ -23,8 +23,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/alexandremahdhaoui/vib/pkg/api"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )

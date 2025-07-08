@@ -16,13 +16,68 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/internal/util"
+)
+
 type ExpressionSetSpec struct {
 	// ArbitraryKeys is used for special resolvers, such as plain that does not require associated values
+	// ArbitraryKeys are always rendered before KeyValues
 	ArbitraryKeys []string `json:"arbitraryKeys" yaml:"arbitraryKeys"`
 
 	// KeyValues uses a list of map to avoid reordered key-values
-	KeyValues []map[string]string `json:"keyValues"   yaml:"keyValues"`
+	KeyValues []map[string]string `json:"keyValues" yaml:"keyValues"`
 
 	// ResolverRef
-	ResolverRef string `json:"resolverRef"   yaml:"resolverRef"`
+	ResolverRef string `json:"resolverRef" yaml:"resolverRef"`
+}
+
+// APIVersion implements types.DefinedResource.
+func (e ExpressionSetSpec) APIVersion() types.APIVersion {
+	return APIVersion
+}
+
+// Kind implements types.DefinedResource.
+func (e ExpressionSetSpec) Kind() types.Kind {
+	return ExpressionSetKind
+}
+
+// Render implements types.Renderer.
+func (e *ExpressionSetSpec) Render(apiServer types.APIServer) (string, error) {
+	// TODO: validate of the resource names
+	// if err := api.ValidateResourceName(expressionSet.ResolverRef); err != nil {
+
+	storage, err := types.GetTypedStorage[ResolverSpec](apiServer)
+	if err != nil {
+		return "", err
+	}
+
+	resolver, err := storage.Get(e.ResolverRef)
+	if err != nil {
+		return "", err
+	}
+
+	buf := ""
+	for _, key := range e.ArbitraryKeys {
+		s, err := resolver.Spec.Resolve(key, "")
+		if err != nil {
+			return "", err
+		}
+
+		buf = util.JoinLine(buf, s)
+	}
+
+	for _, keyValues := range e.KeyValues {
+		for k, v := range keyValues {
+			s, err := resolver.Spec.Resolve(k, v)
+			if err != nil {
+				return "", err
+			}
+
+			buf = util.JoinLine(buf, s)
+		}
+	}
+
+	return buf, nil
 }

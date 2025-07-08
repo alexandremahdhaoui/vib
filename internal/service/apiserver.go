@@ -14,42 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package service
 
 import (
 	"fmt"
 
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
+	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
-type APIServer interface {
-	//-----------------
-	// Manage the API Server
+// APIServer must implement types.APIServer
+//	type APIServer interface {
+//		Register(APIVersion, map[Kind]func() any)
+//	}
 
-	// Register a new APIKind to the APIServer
-	Register(apiKind APIKind) error
-
-	// Unregister an APIKind from the APIServer
-	Unregister(apiVersion APIVersion, kind Kind) error
-
-	//-----------------
-	// Basic Operations
-
-	// Get existing resources by Kind and optionally by APIVersion and/or name
-	// Please set APIVersion & name to nil if you don't need to filter
-	Get(apiVersion *APIVersion, kind Kind, name *string) ([]ResourceDefinition, error)
-
-	// Create a new resource definition
-	Create(resource *ResourceDefinition) error
-
-	// Update an existing resource definition or creates it
-	Update(apiVersion *APIVersion, kind Kind, name string, resource *ResourceDefinition) error
-
-	// Delete by kind & name. Optional apiVersion.
-	Delete(apiVersion *APIVersion, kind Kind, name string) error
-}
-
-func NewAPIServer() APIServer {
+func NewAPIServer() types.APIServer {
 	return defaultAPIServer()
 }
 

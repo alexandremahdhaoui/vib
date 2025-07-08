@@ -24,8 +24,69 @@ import (
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 )
 
-type APIServer interface {
-	Register(APIVersion, map[Kind]func() any)
+type (
+	APIVersionKind interface {
+		APIVersion() APIVersion
+		Kind() Kind
+	}
+
+	Codec interface {
+		Marshal(v any) ([]byte, error)
+		Unmarshal(b []byte, v any) error
+		Encoding() Encoding
+	}
+
+	APIServer interface {
+		// Registers a new APIVersion to the APIServer
+		Register(APIVersion, map[Kind]func() APIVersionKind)
+
+		// Returns the Storage corresponding to the input APIVersionKind
+		GetStorage(avk APIVersionKind) (Storage[APIVersionKind], error)
+	}
+
+	Renderer interface {
+		Render(APIServer) (string, error)
+	}
+
+	Storage[T APIVersionKind] interface {
+		List() ([]Resource[T], error)
+
+		// Get returns types.ErrNotFound if resource cannot be found.
+		Get(name string) (Resource[T], error)
+
+		Create(Resource[T]) error
+
+		// Update returns types.ErrNotFound if named resource cannot be found
+		Update(oldName string, v Resource[T]) error
+
+		Delete(name string) error
+	}
+)
+
+func GetTypedStorage[T APIVersionKind](
+	apiServer APIServer,
+) (Storage[T], error) {
+	avk := *new(T)
+
+	st, err := apiServer.GetStorage(avk)
+	if err != nil {
+		return nil, err
+	}
+
+	typed, ok := st.(Storage[T])
+	if !ok {
+		return nil, flaterrors.Join(
+			ErrType,
+			ErrNotFound,
+			fmt.Errorf(
+				"storage cannot be found for: apiVersion=%q, kind=%q",
+				avk.APIVersion(),
+				avk.Kind(),
+			),
+		)
+	}
+
+	return typed, nil
 }
 
 var (
@@ -40,40 +101,44 @@ var (
 	)
 )
 
+type Encoding string
+
+const (
+	JSONEncoding Encoding = "json"
+	YAMLEncoding Encoding = "yaml"
+)
+
 type (
 	APIVersion string
 	Kind       string
 )
 
-func (v APIVersion) ToLower() APIVersion {
-	return APIVersion(strings.ToLower(string(v)))
+func NewAPIVersion(s string) APIVersion {
+	return APIVersion(strings.ToLower(s))
 }
 
-func (v APIVersion) Validate() (APIVersion, error) {
-	if apiVersion := v.ToLower(); !APIVersionRegex.
-		MatchString(string(apiVersion)) {
-		return apiVersion, nil
+func ValidateAPIVersion(apiVersion APIVersion) error {
+	if !APIVersionRegex.MatchString(string(apiVersion)) {
+		return flaterrors.Join(
+			ErrVal,
+			fmt.Errorf("invalid APIVersion %q", apiVersion),
+		)
 	}
-
-	return "", flaterrors.Join(
-		ErrVal,
-		fmt.Errorf("couldn't validate APIVersion %q", v),
-	)
+	return nil
 }
 
-func (k Kind) ToLower() Kind {
-	return Kind(strings.ToLower(string(k)))
+func NewKind(s string) Kind {
+	return Kind(strings.ToLower(s))
 }
 
-func (k Kind) Validate() (Kind, error) {
-	if kind := k.ToLower(); LoweredKindRegex.MatchString(string(kind)) {
-		return kind, nil
+func ValidateKind(kind Kind) error {
+	if !LoweredKindRegex.MatchString(string(kind)) {
+		return flaterrors.Join(
+			ErrVal,
+			fmt.Errorf("couldn't validate Kind %q", kind),
+		)
 	}
-
-	return "", flaterrors.Join(
-		ErrVal,
-		fmt.Errorf("couldn't validate Kind %q", k),
-	)
+	return nil
 }
 
 type Metadata struct {
@@ -86,25 +151,35 @@ func NewMetadata(name string) Metadata {
 	return Metadata{Name: name} //nolint:exhaustruct,exhaustivestruct
 }
 
-type Resource struct {
+type Resource[T any] struct {
 	APIVersion APIVersion `json:"apiVersion" yaml:"apiVersion"`
 	Kind       Kind       `json:"kind"       yaml:"kind"`
 	Metadata   Metadata   `json:"metadata"   yaml:"metadata"`
-	Spec       any        `json:"spec"       yaml:"spec"`
+	Spec       T          `json:"spec"       yaml:"spec"`
 }
 
-func NewResource(
+func NewResource[T any](
 	apiVersion APIVersion,
 	kind Kind,
 	name string,
-	spec any,
-) *Resource {
-	return &Resource{
+	spec T,
+) (Resource[T], error) {
+	if err := ValidateAPIVersion(apiVersion); err != nil {
+		return Resource[T]{}, err
+	}
+	if err := ValidateKind(kind); err != nil {
+		return Resource[T]{}, err
+	}
+	if err := ValidateResourceName(name); err != nil {
+		return Resource[T]{}, err
+	}
+
+	return Resource[T]{
 		APIVersion: apiVersion,
 		Kind:       kind,
 		Metadata:   NewMetadata(name),
 		Spec:       spec,
-	}
+	}, nil
 }
 
 func ValidateResourceName(s string) error {
@@ -131,19 +206,4 @@ func ValidateResourceNamePtr(ptr *string) error {
 		ErrVal,
 		fmt.Errorf("couldn't validate resource name %q", *ptr),
 	)
-}
-
-func ValidateAPIVersionPtr(ptr *APIVersion) error {
-	if ptr == nil {
-		return nil
-	}
-
-	apiVersion, err := ptr.Validate()
-	if err != nil {
-		return err
-	}
-
-	*ptr = apiVersion
-
-	return nil
 }
