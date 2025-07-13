@@ -27,16 +27,16 @@ import (
 )
 
 var (
-	_ types.Codec = &JSONStrategy{}
-	_ types.Codec = &YAMLStrategy{}
+	_ types.Codec = &jsonCodec{}
+	_ types.Codec = &yamlCodec{}
 )
 
 func New(encoding types.Encoding) (types.Codec, error) {
 	switch encoding {
 	case types.JSONEncoding:
-		return &JSONStrategy{}, nil
+		return &jsonCodec{}, nil
 	case types.YAMLEncoding:
-		return &YAMLStrategy{}, nil
+		return &yamlCodec{}, nil
 	default:
 		return nil, flaterrors.Join(
 			types.ErrEncoding,
@@ -45,30 +45,30 @@ func New(encoding types.Encoding) (types.Codec, error) {
 	}
 }
 
-type JSONStrategy struct{}
+type jsonCodec struct{}
 
-func (s *JSONStrategy) Marshal(v any) ([]byte, error) {
+func (s *jsonCodec) Marshal(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func (s *JSONStrategy) Unmarshal(data []byte, v any) error {
+func (s *jsonCodec) Unmarshal(data []byte, v any) error {
 	return json.Unmarshal(data, v)
 }
 
-func (s *JSONStrategy) Encoding() types.Encoding {
+func (s *jsonCodec) Encoding() types.Encoding {
 	return types.JSONEncoding
 }
 
-type YAMLStrategy struct{}
+type yamlCodec struct{}
 
-func (s *YAMLStrategy) Marshal(v any) ([]byte, error) {
+func (s *yamlCodec) Marshal(v any) ([]byte, error) {
 	return yaml.Marshal(v)
 }
 
-func (s *YAMLStrategy) Unmarshal(data []byte, v any) error {
+func (s *yamlCodec) Unmarshal(data []byte, v any) error {
 	return yaml.Unmarshal(data, v)
 }
 
-func (s *YAMLStrategy) Encoding() types.Encoding {
+func (s *yamlCodec) Encoding() types.Encoding {
 	return types.YAMLEncoding
 }

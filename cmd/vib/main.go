@@ -111,7 +111,7 @@ func Get() *cli.Command {
 func GetResources(cctx *cli.Context, server api.APIServer) ([]api.ResourceDefinition, error) {
 	apiVersion, kind := ParseAPIVersionAndKindFromArgs(cctx)
 	if kind == nil {
-		return nil, pleaseSpecifyAResourceKind()
+		return nil, errPleaseSpecifyAResourceKind()
 	}
 
 	names := ParseResourceNamesFromArgs(cctx)
@@ -185,12 +185,12 @@ func Edit() *cli.Command {
 		Action: func(cctx *cli.Context) error {
 			_, kind := ParseAPIVersionAndKindFromArgs(cctx)
 			if kind == nil {
-				return pleaseSpecifyAResourceKind()
+				return errPleaseSpecifyAResourceKind()
 			}
 
 			names := ParseResourceNamesFromArgs(cctx)
 			if len(names) == 0 {
-				return pleaseSpecifyValidResourceNames()
+				return errPleaseSpecifyValidResourceNames()
 			}
 
 			// TODO implement me
@@ -213,12 +213,12 @@ func Delete() *cli.Command {
 		Action: func(cctx *cli.Context) error {
 			apiVersion, kind := ParseAPIVersionAndKindFromArgs(cctx)
 			if kind == nil {
-				return pleaseSpecifyAResourceKind()
+				return errPleaseSpecifyAResourceKind()
 			}
 
 			names := ParseResourceNamesFromArgs(cctx)
 			if len(names) == 0 {
-				return pleaseSpecifyValidResourceNames()
+				return errPleaseSpecifyValidResourceNames()
 			}
 
 			apiServer, err := fastInit()

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package storageadapter
+package resourceadapter
 
 import (
 	"errors"
@@ -34,7 +34,6 @@ import (
 
 // NewFilesystem instantiate a new strategy
 func NewFilesystem[T types.APIVersionKind](
-	v types.APIVersionKind,
 	resourceDir string,
 	codec types.Codec,
 ) (types.Storage[T], error) {
@@ -43,6 +42,7 @@ func NewFilesystem[T types.APIVersionKind](
 		return nil, err
 	}
 
+	v := *new(T)
 	return &filesystem[T]{
 		apiVersion:  v.APIVersion(),
 		kind:        v.Kind(),

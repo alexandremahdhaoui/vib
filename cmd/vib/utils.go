@@ -17,84 +17,86 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
-	"regexp"
 	"strings"
+
+	"github.com/alexandremahdhaoui/vib/internal/types"
+
+	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
+
+// TODO: create a ReadWriter interface that the Storage adapter of type filesystem can use.
 
 const (
 	debug = "debug"
 )
 
 // ParseAPIVersionAndKindFromArgs returns both optionally not nil pointer to vib.APIVersion and vib.Kind
-func ParseAPIVersionAndKindFromArgs(cctx *cli.Context) (*api.APIVersion, *api.Kind) {
+func ParseAPIVersionAndKindFromArgs(cctx *cli.Context) (*types.APIVersion, *types.Kind) {
 	s := strings.ToLower(cctx.Args().Get(0))
 	if s == "" {
 		return nil, nil
 	}
 
-	apiVersionAndKindRegex := regexp.MustCompile(
-		// ${domain_name}/v[0-9]+[a-z0-9]*/${kind}
-		api.RegexAPIVersionAndKind(),
-	)
-
-	if apiVersionAndKindRegex.MatchString(s) {
+	// ${domain_name}/v[0-9]+[a-z0-9]*/${kind}
+	if types.APIVersionAndKindRegex.MatchString(s) {
 		sl := strings.Split(s, "/")
-		apiVersion := api.APIVersion(strings.Join(sl[0:1], sl[1]))
-		kind := api.Kind(sl[2])
+		apiVersion := types.APIVersion(strings.Join(sl[0:1], sl[1]))
+		kind := types.Kind(sl[2])
 		return &apiVersion, &kind
 	}
 
-	if regexp.MustCompile(api.RegexKindLowered()).MatchString(s) {
-		kind := api.Kind(s)
+	if types.LoweredKindRegex.MatchString(s) {
+		kind := types.Kind(s)
 		return nil, &kind
 	}
+
+	// should this return an err
 	return nil, nil
 }
 
-func ParseResourceNamesFromArgs(cctx *cli.Context) []string {
+func ParseResourceNamesFromArgs(cctx *cli.Context) ([]string, error) {
 	if cctx.Args().Len() < 2 {
-		return nil
+		return nil, errors.New("expected 2 arguments")
 	}
-
-	regex := regexp.MustCompile(api.RegexResourceName())
 
 	results := make([]string, 0)
 	for _, name := range cctx.Args().Slice()[1:] {
-		if !regex.MatchString(name) {
-			_ = logger.NewErrAndLog(
-				logger.ErrType,
-				fmt.Sprintf("resource name %q is not supported", name),
+		if !types.ResourceNameRegex.MatchString(name) {
+			return nil, flaterrors.Join(
+				types.ErrType,
+				fmt.Errorf("resource with name %q is invalid", name),
 			)
-
-			return nil
 		}
 
 		results = append(results, name)
 	}
 
-	return results
+	return results, nil
 }
 
-func resourceFromFileOrStdin(cctx *cli.Context) (*api.ResourceDefinition, error) {
-	var resource *api.ResourceDefinition
+func resourceFromFileOrStdin(cctx *cli.Context) (types.Resource[json.RawMessage], error) {
+	var resource types.Resource[json.RawMessage]
 	var err error
 
 	if file := cctx.String(fileFlagName); file != "" {
 		// read file
-		resource, err = api.ReadEncodedFile(file)
+		resource, err = codecadapter.ReadEncodedFile(file)
 		if err != nil {
-			return nil, err
+			return resource, err
 		}
 	} else {
 		resource, err = unmarshalFromStdin()
 		if err != nil {
-			return nil, err
+			return resource, err
 		}
 	}
 	return resource, nil
@@ -106,8 +108,8 @@ func debugFlag() *cli.BoolFlag {
 		Category: miscCategory,
 		Action: func(_ *cli.Context, b bool) error {
 			if b {
-				logger.Info("switching to debug mode")
-				logger.New(true)
+				// -- switching to debug mode
+				slog.SetLogLoggerLevel(slog.LevelDebug)
 			}
 			return nil
 		},
@@ -115,30 +117,32 @@ func debugFlag() *cli.BoolFlag {
 }
 
 // unmarshalFromStdin only supports vib.YAMLEncoding for now
-func unmarshalFromStdin() (*api.ResourceDefinition, error) {
-	logger.Debug("reading resource from stdin")
+func unmarshalFromStdin() (types.Resource[json.RawMessage], error) {
+	slog.Debug("reading resource from stdin")
 	// Otherwise read from stdin
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		logger.Error(err)
-
-		return nil, err
+		return types.Resource[json.RawMessage]{}, err
 	}
 
-	var resource *api.ResourceDefinition
+	var resource types.Resource[json.RawMessage]
 	if err = yaml.Unmarshal(data, resource); err != nil {
-		logger.Error(err)
-
-		return nil, err
+		return types.Resource[json.RawMessage]{}, err
 	}
 
 	return resource, nil
 }
 
-func pleaseSpecifyAResourceKind() error {
-	return logger.NewErr(logger.ErrArgs, "please specify a resource kind") //nolint:wrapcheck
+func errPleaseSpecifyAResourceKind() error {
+	return flaterrors.Join(
+		types.ErrArgs,
+		errors.New("please specify a resource kind"),
+	) //nolint:wrapcheck
 }
 
-func pleaseSpecifyValidResourceNames() error {
-	return logger.NewErr(logger.ErrArgs, "please specify valid resource name(s)") //nolint:wrapcheck
+func errPleaseSpecifyValidResourceNames() error {
+	return flaterrors.Join(
+		types.ErrArgs,
+		errors.New("please specify valid resource name(s)"),
+	) //nolint:wrapcheck
 }

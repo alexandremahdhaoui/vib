@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package service
+package apiserver
 
 import (
 	"fmt"
@@ -22,10 +22,23 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
-// APIServer must implement types.APIServer
-//	type APIServer interface {
-//		Register(APIVersion, map[Kind]func() any)
-//	}
+func New() types.APIServer {
+	return &apiServer{}
+}
+
+type apiServer struct{}
+
+// GetStorage implements types.APIServer.
+func (a *apiServer) GetStorage(
+	avk types.APIVersionKind,
+) (types.Storage[types.APIVersionKind], error) {
+	panic("unimplemented")
+}
+
+// Register implements types.APIServer.
+func (a *apiServer) Register(types.APIVersion, map[types.Kind]func() types.APIVersionKind) {
+	panic("unimplemented")
+}
 
 func NewAPIServer() types.APIServer {
 	return defaultAPIServer()
