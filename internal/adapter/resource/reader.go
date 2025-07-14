@@ -17,7 +17,8 @@ limitations under the License.
 package resourceadapter
 
 import (
-	"bytes"
+	"errors"
+	"io"
 
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
@@ -26,41 +27,53 @@ import (
 // That adapter must read resources from "anonymous files" by first unmarshalling a raw resource,
 // and then getting the appropriate storage from an APIServer.
 
-// NewByteStream instantiates a new resource adapter that can operate on any
-// form of input.
-func NewByteStream[T types.APIVersionKind](
-	reader bytes.Reader,
+// NewReader instantiates a new resource adapter that can operate on any
+// form of byte stream input.
+func NewReader[T types.APIVersionKind](
+	dynDecoder types.DynamicDecoder[T],
+	reader io.Reader,
 ) types.Storage[T] {
 	// reader bytes.Reader
-	return &byteStream[T]{}
+	return &byteReader[T]{
+		dynDecoder: dynDecoder,
+		reader:     reader,
+	}
 }
 
 // Only implements List and Get.
-// Does not imlement Create, Update or Delete.
-type byteStream[T types.APIVersionKind] struct {
-	reader bytes.Reader
+// Does not implement Create, Update or Delete.
+type byteReader[T types.APIVersionKind] struct {
+	dynDecoder types.DynamicDecoder[T]
+	reader     io.Reader
 }
 
 // List many resources from the input byte stream.
-func (b *byteStream[T]) List() ([]types.Resource[T], error) {
-	// TODO:
-	panic("unimplemented")
+func (r *byteReader[T]) List() ([]types.Resource[T], error) {
+	return r.dynDecoder.Decode(r.reader)
 }
 
 // Get one resource from the input byte stream.
-func (b *byteStream[T]) Get(_ string) (types.Resource[T], error) {
-	// TODO:
+func (r *byteReader[T]) Get(_ string) (types.Resource[T], error) {
+	out, err := r.dynDecoder.Decode(r.reader)
+	if err != nil {
+		return types.Resource[T]{}, err
+	}
+
+	if len(out) < 1 {
+		return types.Resource[T]{}, errors.New("resource cannot be found in input")
+	}
+
+	return out[0], nil
+}
+
+func (r *byteReader[T]) Create(types.Resource[T]) error {
 	panic("unimplemented")
 }
 
-func (b *byteStream[T]) Create(types.Resource[T]) error {
+func (r *byteReader[T]) Delete(name string) error {
 	panic("unimplemented")
 }
 
-func (b *byteStream[T]) Delete(name string) error {
-	panic("unimplemented")
-}
-
-func (b *byteStream[T]) Update(oldName string, v types.Resource[T]) error {
+func (r *byteReader[T]) Update(oldName string, v types.Resource[T]) error {
 	panic("unimplemented")
 }

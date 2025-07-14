@@ -31,6 +31,7 @@ var (
 	_ types.Codec = &yamlCodec{}
 )
 
+// TODO: move this function outside this package.
 func New(encoding types.Encoding) (types.Codec, error) {
 	switch encoding {
 	case types.JSONEncoding:

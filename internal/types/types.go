@@ -18,6 +18,7 @@ package types
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -25,6 +26,15 @@ import (
 )
 
 type (
+	APIServer interface {
+		// Registers a new APIVersion to the APIServer
+		Register(APIVersion, map[Kind]func() APIVersionKind)
+
+		// Get will return a zero valued instance of a Resource corresponding
+		// to the return AVK
+		Get(avk APIVersionKind) (Resource[APIVersionKind], error)
+	}
+
 	APIVersionKind interface {
 		APIVersion() APIVersion
 		Kind() Kind
@@ -36,12 +46,8 @@ type (
 		Encoding() Encoding
 	}
 
-	APIServer interface {
-		// Registers a new APIVersion to the APIServer
-		Register(APIVersion, map[Kind]func() APIVersionKind)
-
-		// Returns the Storage corresponding to the input APIVersionKind
-		GetStorage(avk APIVersionKind) (Storage[APIVersionKind], error)
+	DynamicDecoder[T any] interface {
+		Decode(io.Reader) ([]Resource[T], error)
 	}
 
 	Renderer interface {
@@ -49,26 +55,34 @@ type (
 	}
 
 	Storage[T APIVersionKind] interface {
+		// List resources present in the store.
 		List() ([]Resource[T], error)
 
 		// Get returns types.ErrNotFound if resource cannot be found.
 		Get(name string) (Resource[T], error)
 
+		// Creates a resource if it does not exist in the store.
 		Create(Resource[T]) error
 
 		// Update returns types.ErrNotFound if named resource cannot be found
 		Update(oldName string, v Resource[T]) error
 
+		// Delete a resource in the store. Delete is idempotent.
 		Delete(name string) error
+	}
+
+	StorageServer interface {
+		// Returns the Storage corresponding to the input APIVersionKind
+		Get(avk APIVersionKind) (Storage[APIVersionKind], error)
 	}
 )
 
 func GetTypedStorage[T APIVersionKind](
-	apiServer APIServer,
+	storageServer StorageServer,
 ) (Storage[T], error) {
 	avk := *new(T)
 
-	st, err := apiServer.GetStorage(avk)
+	st, err := storageServer.Get(avk)
 	if err != nil {
 		return nil, err
 	}
@@ -206,4 +220,26 @@ func ValidateResourceNamePtr(ptr *string) error {
 		ErrVal,
 		fmt.Errorf("couldn't validate resource name %q", *ptr),
 	)
+}
+
+type avk struct {
+	apiVersion APIVersion
+	kind       Kind
+}
+
+// APIVersion implements APIVersionKind.
+func (a avk) APIVersion() APIVersion {
+	return a.apiVersion
+}
+
+// Kind implements APIVersionKind.
+func (a avk) Kind() Kind {
+	return a.kind
+}
+
+func NewAVKFromResource[T any](res Resource[T]) APIVersionKind {
+	return avk{
+		apiVersion: res.APIVersion,
+		kind:       res.Kind,
+	}
 }
