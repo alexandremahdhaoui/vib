@@ -1,3 +1,5 @@
+//go:build unit
+
 /*
 Copyright 2023 Alexandre Mahdhaoui
 
@@ -14,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resourceadapter_test
+package storageadapter_test
 
 import (
 	"fmt"

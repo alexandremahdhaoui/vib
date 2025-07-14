@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	storageadapter "github.com/alexandremahdhaoui/vib/internal/adapter/storage"
+	"github.com/alexandremahdhaoui/vib/internal/adapter/resource"
 	"github.com/alexandremahdhaoui/vib/internal/types"
 	"github.com/alexandremahdhaoui/vib/pkg/apis/v1alpha1"
 
@@ -89,9 +89,9 @@ func getStorage(
 	options := make([]interface{}, 0)
 
 	switch config.StorageStrategy {
-	case storageadapter.FileSystemOperatorStrategy:
+	case resourceadapter.FileSystemOperatorStrategy:
 		options = append(options, config.ResourceDir, service.YAMLEncoding)
-	case storageadapter.GitOperatorStrategy:
+	case resourceadapter.GitOperatorStrategy:
 		// TODO: implement me
 		panic("not implemented yet")
 	default:
@@ -101,9 +101,9 @@ func getStorage(
 		)
 	}
 
-	return func(apiVersion service.APIVersion, kind service.Kind) (storageadapter.Storage, error) {
+	return func(apiVersion service.APIVersion, kind service.Kind) (resourceadapter.Storage, error) {
 		options := append([]interface{}{apiVersion, kind}, options...)
-		return storageadapter.New(config.StorageStrategy, options...)
+		return resourceadapter.New(config.StorageStrategy, options...)
 	}, nil
 }
 

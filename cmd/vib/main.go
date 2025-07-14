@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/alexandremahdhaoui/vib/internal/util"
+
 	"github.com/urfave/cli/v2"
 	"go.yaml.in/yaml/v3"
 )

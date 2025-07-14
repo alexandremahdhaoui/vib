@@ -50,16 +50,21 @@ type (
 		Decode(io.Reader) ([]Resource[T], error)
 	}
 
+	Reader[T APIVersionKind] interface {
+		// List resources.
+		List() ([]Resource[T], error)
+
+		// Get a resource by name. It returns types.ErrNotFound if the resource
+		// cannot be found.
+		Get(name string) (Resource[T], error)
+	}
+
 	Renderer interface {
 		Render(APIServer) (string, error)
 	}
 
 	Storage[T APIVersionKind] interface {
-		// List resources present in the store.
-		List() ([]Resource[T], error)
-
-		// Get returns types.ErrNotFound if resource cannot be found.
-		Get(name string) (Resource[T], error)
+		Reader[T]
 
 		// Creates a resource if it does not exist in the store.
 		Create(Resource[T]) error
@@ -76,6 +81,8 @@ type (
 		Get(avk APIVersionKind) (Storage[APIVersionKind], error)
 	}
 )
+
+type AVKFactory func() APIVersionKind
 
 func GetTypedStorage[T APIVersionKind](
 	storageServer StorageServer,

@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	storageadapter "github.com/alexandremahdhaoui/vib/internal/adapter/storage"
+	"github.com/alexandremahdhaoui/vib/internal/adapter/resource"
 	"github.com/alexandremahdhaoui/vib/internal/types"
 	"github.com/alexandremahdhaoui/vib/internal/util"
 )
@@ -32,14 +32,14 @@ const (
 	resourcesPath = "resources"
 )
 
-const DefaultStorageStrategy = storageadapter.FileSystemStorageStrategy
+const DefaultStorageStrategy = resourceadapter.FileSystemStorageStrategy
 
 // ConfigSpec stores important information to run the vib command line.
 // The config is always stored on disk, thus the Operator for managing Config will always be of type
 // vib.FilesystemOperator.
 type ConfigSpec struct {
 	// StorageStrategy defines which storage strategy must be used (only filesystem is supported).
-	StorageStrategy storageadapter.StorageStrategy
+	StorageStrategy resourceadapter.StorageStrategy
 	// ResourceDir specifies the absolute path to Resource definitions.
 	// Defaults to CONFIG_DIR/vib/resources
 	ResourceDir string
@@ -73,7 +73,7 @@ func readConfig(configDir *string) (*ConfigSpec, error) {
 	}
 
 	// Initiate FS strategy for reading the config
-	strategy, err := storageadapter.NewFilesystem(
+	strategy, err := resourceadapter.NewFilesystem(
 		apis.V1Alpha1,
 		configKind,
 		cfgDir,
