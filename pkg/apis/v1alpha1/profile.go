@@ -39,7 +39,7 @@ func (p ProfileSpec) Kind() types.Kind {
 }
 
 // Render implements types.Renderer.
-func (p *ProfileSpec) Render(apiServer types.APIServer) (string, error) {
+func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 	refs := make(map[string]string, len(p.Refs))
 	for _, ref := range p.Refs {
 		// TODO: validate refs resource names?
@@ -48,12 +48,7 @@ func (p *ProfileSpec) Render(apiServer types.APIServer) (string, error) {
 	}
 
 	// -- Expressions
-	eStorage, err := types.GetTypedStorage[ExpressionSpec](apiServer)
-	if err != nil {
-		return "", err
-	}
-
-	eList, err := eStorage.List()
+	eList, err := types.ListTypedResourceFromStorage[ExpressionSpec](storage)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +58,7 @@ func (p *ProfileSpec) Render(apiServer types.APIServer) (string, error) {
 			continue
 		}
 
-		s, err := e.Spec.Render(apiServer)
+		s, err := e.Spec.Render(storage)
 		if err != nil {
 			return "", err
 		}
@@ -72,12 +67,7 @@ func (p *ProfileSpec) Render(apiServer types.APIServer) (string, error) {
 	}
 
 	// -- Expression sets
-	esStorage, err := types.GetTypedStorage[ExpressionSetSpec](apiServer)
-	if err != nil {
-		return "", err
-	}
-
-	esList, err := esStorage.List()
+	esList, err := types.ListTypedResourceFromStorage[ExpressionSetSpec](storage)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +77,7 @@ func (p *ProfileSpec) Render(apiServer types.APIServer) (string, error) {
 			continue
 		}
 
-		s, err := es.Spec.Render(apiServer)
+		s, err := es.Spec.Render(storage)
 		if err != nil {
 			return "", err
 		}

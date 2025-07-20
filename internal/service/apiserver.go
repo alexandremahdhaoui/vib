@@ -17,39 +17,64 @@ limitations under the License.
 package service
 
 import (
+	"fmt"
+
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
-// TODO: implement apiServer
-
 type (
 	avkHash string // concatenate APIVersion and Kind
-
 	// leaf contains information about an AVK
 	leaf struct {
-		// factory function that instantiate the zero-valued struct
+		// avkFactory function that instantiate the zero-valued struct
 		// corresponding to the AVK.
 		avkFactory types.AVKFactory
-		// ReaderFactory
-		decoderFactory func() types.Reader[types.APIVersionKind]
 	}
 )
 
 type apiServer struct {
-	avkMap map[types.APIVersion]types.Kind
-	resMap map[avkHash]leaf
+	leavesByHash map[avkHash]leaf
 }
 
 func New() types.APIServer {
-	return &apiServer{}
+	return &apiServer{
+		leavesByHash: make(map[avkHash]leaf),
+	}
 }
 
 // Get implements types.APIServer.
 func (a *apiServer) Get(avk types.APIVersionKind) (types.Resource[types.APIVersionKind], error) {
-	panic("unimplemented")
+	l, err := a.getLeaf(avk)
+	if err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
+	}
+
+	return types.Resource[types.APIVersionKind]{
+		APIVersion: avk.APIVersion(),
+		Kind:       avk.Kind(),
+		Metadata:   types.Metadata{},
+		Spec:       l.avkFactory(),
+	}, nil
 }
 
 // Register implements types.APIServer.
-func (a *apiServer) Register(types.APIVersion, map[types.Kind]func() types.APIVersionKind) {
-	panic("unimplemented")
+func (a *apiServer) Register(avkFactory []types.AVKFactory) {
+	for _, f := range avkFactory {
+		avk := f()
+		a.leavesByHash[a.computeAVKHash(avk)] = leaf{
+			avkFactory: f,
+		}
+	}
+}
+
+func (a *apiServer) computeAVKHash(avk types.APIVersionKind) avkHash {
+	return avkHash(fmt.Sprintf("%s-%s", avk.APIVersion(), avk.Kind()))
+}
+
+func (a *apiServer) getLeaf(avk types.APIVersionKind) (leaf, error) {
+	l, ok := a.leavesByHash[a.computeAVKHash(avk)]
+	if !ok {
+		return leaf{}, types.ErrNotFound
+	}
+	return l, nil
 }

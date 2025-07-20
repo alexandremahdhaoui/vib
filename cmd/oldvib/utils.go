@@ -33,8 +33,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TODO: create a ReadWriter interface that the Storage adapter of type filesystem can use.
-
 const (
 	debug = "debug"
 )

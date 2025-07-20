@@ -33,19 +33,16 @@ import (
 //----------------------------------------------------------------------------------------------------------------------
 
 // NewFilesystem instantiate a new strategy
-func NewFilesystem[T types.APIVersionKind](
+func NewFilesystem(
 	resourceDir string,
 	codec types.Codec,
-) (types.Storage[T], error) {
+) (types.Storage, error) {
 	// ensure the resourceDir exists
 	if err := os.MkdirAll(resourceDir, 0777); err != nil {
 		return nil, err
 	}
 
-	v := *new(T)
-	return &filesystem[T]{
-		apiVersion:  v.APIVersion(),
-		kind:        v.Kind(),
+	return &filesystem{
 		resourceDir: resourceDir,
 		codec:       codec,
 	}, nil
@@ -54,15 +51,15 @@ func NewFilesystem[T types.APIVersionKind](
 // filesystem operates T through the filesystem.
 // Resources are stored on the filesystem using the following convention:
 // - Filename: {{ T.APIVersion() }}.{{ T.Kind() }}.{{ T.IMetadata().Name }}. {{ s.encoder.Encoding() }}
-type filesystem[T types.APIVersionKind] struct {
-	apiVersion  types.APIVersion
-	kind        types.Kind
+type filesystem struct {
 	resourceDir string
 	codec       types.Codec
 }
 
-func (fs *filesystem[T]) List() ([]types.Resource[T], error) {
-	res := make([]types.Resource[T], 0)
+func (fs *filesystem) List(
+	avk types.APIVersionKind,
+) ([]types.Resource[types.APIVersionKind], error) {
+	res := make([]types.Resource[types.APIVersionKind], 0)
 	// Get all instance of T.
 	dentries, err := os.ReadDir(fs.resourceDir)
 	if err != nil {
@@ -71,8 +68,8 @@ func (fs *filesystem[T]) List() ([]types.Resource[T], error) {
 
 	r := strings.ToLower(fmt.Sprintf(
 		`%s\.%s\..*\.%s`,
-		cleanAPIVersionForFilesystem(fs.apiVersion),
-		fs.kind,
+		cleanAPIVersionForFilesystem(avk.APIVersion()),
+		avk.Kind(),
 		fs.codec.Encoding(),
 	))
 
@@ -86,7 +83,7 @@ func (fs *filesystem[T]) List() ([]types.Resource[T], error) {
 			continue
 		}
 
-		v, err := fs.read(fs.joinDirAndBasename(dentry.Name()))
+		v, err := fs.read(fs.dirFromBasename(dentry.Name()))
 		if err != nil {
 			return nil, err
 		}
@@ -98,20 +95,23 @@ func (fs *filesystem[T]) List() ([]types.Resource[T], error) {
 	return res, nil
 }
 
-func (fs *filesystem[T]) Get(name string) (types.Resource[T], error) {
-	v, err := fs.read(fs.filepathFromResourceName(name))
+func (fs *filesystem) Get(
+	avk types.APIVersionKind,
+	name string,
+) (types.Resource[types.APIVersionKind], error) {
+	v, err := fs.read(fs.filepathFromResourceName(avk, name))
 	if os.IsNotExist(err) {
-		return types.Resource[T]{}, flaterrors.Join(err, types.ErrNotFound)
+		return types.Resource[types.APIVersionKind]{}, flaterrors.Join(err, types.ErrNotFound)
 	} else if err != nil {
-		return types.Resource[T]{}, err
+		return types.Resource[types.APIVersionKind]{}, err
 	}
 
 	return v, nil
 }
 
 // Create should create only if file does not already exist.
-func (fs *filesystem[T]) Create(res types.Resource[T]) error {
-	exist, err := resourceExist[T](fs, res.Metadata.Name)
+func (fs *filesystem) Create(res types.Resource[types.APIVersionKind]) error {
+	exist, err := resourceExist(fs, res.Spec, res.Metadata.Name)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (fs *filesystem[T]) Create(res types.Resource[T]) error {
 	return fs.writeAtomic(res)
 }
 
-func (fs *filesystem[T]) writeAtomic(v types.Resource[T]) error {
+func (fs *filesystem) writeAtomic(v types.Resource[types.APIVersionKind]) error {
 	f, err := os.CreateTemp("", "vibtmp_*")
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func (fs *filesystem[T]) writeAtomic(v types.Resource[T]) error {
 		return err
 	}
 
-	dest := fs.filepathFromResourceName(v.Metadata.Name)
+	dest := fs.filepathFromResourceName(v.Spec, v.Metadata.Name)
 	if err := os.Rename(f.Name(), dest); err != nil {
 		return err
 	}
@@ -157,11 +157,11 @@ func (fs *filesystem[T]) writeAtomic(v types.Resource[T]) error {
 	return nil
 }
 
-func (fs *filesystem[T]) Update(oldName string, v types.Resource[T]) error {
+func (fs *filesystem) Update(oldName string, v types.Resource[types.APIVersionKind]) error {
 	// Rename if required
 	if oldName != v.Metadata.Name {
-		oldPath := fs.filepathFromResourceName(oldName)
-		newPath := fs.filepathFromResourceName(v.Metadata.Name)
+		oldPath := fs.filepathFromResourceName(v.Spec, oldName)
+		newPath := fs.filepathFromResourceName(v.Spec, v.Metadata.Name)
 		if err := os.Rename(oldPath, newPath); err != nil {
 			return err
 		}
@@ -170,45 +170,48 @@ func (fs *filesystem[T]) Update(oldName string, v types.Resource[T]) error {
 	return fs.writeAtomic(v)
 }
 
-func (fs *filesystem[T]) Delete(name string) error {
-	return os.Remove(fs.filepathFromResourceName(name))
+func (fs *filesystem) Delete(avk types.APIVersionKind, name string) error {
+	return os.Remove(fs.filepathFromResourceName(avk, name))
 }
 
 // read tries to read file corresponding to the specified object's name.
 // It returns os.ErrNotExist if file does not exist.
-func (fs *filesystem[T]) read(path string) (types.Resource[T], error) {
+func (fs *filesystem) read(path string) (types.Resource[types.APIVersionKind], error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return types.Resource[T]{}, err
+		return types.Resource[types.APIVersionKind]{}, err
 	}
 
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return types.Resource[T]{}, err
+		return types.Resource[types.APIVersionKind]{}, err
 	}
 
-	v := new(types.Resource[T])
+	v := new(types.Resource[types.APIVersionKind])
 	if err := fs.codec.Unmarshal(b, v); err != nil {
-		return types.Resource[T]{}, err
+		return types.Resource[types.APIVersionKind]{}, err
 	}
 	return *v, nil
 }
 
-// joinDirAndBasename joins the resourceDir to the basename
-func (fs *filesystem[T]) joinDirAndBasename(basename string) string {
+// dirFromBasename joins the resourceDir to the basename
+func (fs *filesystem) dirFromBasename(basename string) string {
 	return filepath.Join(fs.resourceDir, basename)
 }
 
 // filepathFromResourceName computes the resourceDir to the corresponding resource name, based on the naming convention
-func (fs *filesystem[T]) filepathFromResourceName(resourceName string) string {
-	return fs.joinDirAndBasename(fs.basename(resourceName))
+func (fs *filesystem) filepathFromResourceName(
+	avk types.APIVersionKind,
+	resourceName string,
+) string {
+	return fs.dirFromBasename(fs.basename(avk, resourceName))
 }
 
 // filepathFromResourceName computes the resource filename, based on the naming convention
-func (fs *filesystem[T]) basename(resourceName string) string {
+func (fs *filesystem) basename(avk types.APIVersionKind, resourceName string) string {
 	return strings.ToLower(fmt.Sprintf(
 		"%s.%s.%s.%s",
-		cleanAPIVersionForFilesystem(fs.apiVersion),
-		fs.kind,
+		cleanAPIVersionForFilesystem(avk.APIVersion()),
+		avk.Kind(),
 		resourceName,
 		fs.codec.Encoding(),
 	))
@@ -220,7 +223,7 @@ func (fs *filesystem[T]) basename(resourceName string) string {
 
 // GitStorage uses FilesystemStrategy as a backend, and leverages Git for version control.
 type GitStorage[T types.APIVersionKind] struct {
-	innerStrategy filesystem[T]
+	_ filesystem // inner strategy
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -228,8 +231,8 @@ type GitStorage[T types.APIVersionKind] struct {
 //----------------------------------------------------------------------------------------------------------------------
 
 // resourceExist checks if a named resource already exist
-func resourceExist[T types.APIVersionKind](storage types.Storage[T], name string) (bool, error) {
-	_, err := storage.Get(name)
+func resourceExist(storage types.Storage, avk types.APIVersionKind, name string) (bool, error) {
+	_, err := storage.Get(avk, name)
 	if errors.Is(err, types.ErrNotFound) {
 		return false, nil
 	} else if err != nil {

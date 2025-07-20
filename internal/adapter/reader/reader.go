@@ -17,7 +17,6 @@ limitations under the License.
 package readeradapter
 
 import (
-	"errors"
 	"io"
 
 	"github.com/alexandremahdhaoui/vib/internal/types"
@@ -44,22 +43,6 @@ type byteReader struct {
 }
 
 // List many resources from the input byte stream.
-func (r *byteReader) List() ([]types.Resource[types.APIVersionKind], error) {
+func (r *byteReader) Read() ([]types.Resource[types.APIVersionKind], error) {
 	return r.dynDecoder.Decode(r.reader)
-}
-
-// Get one resource by name from the input.
-func (r *byteReader) Get(name string) (types.Resource[types.APIVersionKind], error) {
-	resources, err := r.dynDecoder.Decode(r.reader)
-	if err != nil {
-		return types.Resource[types.APIVersionKind]{}, err
-	}
-
-	for _, r := range resources {
-		if r.Metadata.Name == name {
-			return r, nil
-		}
-	}
-
-	return types.Resource[types.APIVersionKind]{}, errors.New("resource cannot be found")
 }

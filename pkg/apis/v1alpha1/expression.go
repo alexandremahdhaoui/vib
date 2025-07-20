@@ -37,14 +37,11 @@ func (e ExpressionSpec) Kind() types.Kind {
 }
 
 // Render implements types.Renderer.
-func (e *ExpressionSpec) Render(apiServer types.APIServer) (string, error) {
+func (e *ExpressionSpec) Render(storage types.Storage) (string, error) {
 	// TODO: validate resource name (e.ResolverRef must be valid)
-	storage, err := types.GetTypedStorage[ResolverSpec](apiServer)
-	if err != nil {
-		return "", err
-	}
 
-	resolver, err := storage.Get(e.ResolverRef)
+	// TODO: create types.GetFromStorageTyped[T]
+	resolver, err := types.GetTypedResourceFromStorage[ResolverSpec](storage, e.ResolverRef)
 	if err != nil {
 		return "", err
 	}

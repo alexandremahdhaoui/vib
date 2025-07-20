@@ -17,6 +17,7 @@ limitations under the License.
 package types
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -28,7 +29,7 @@ import (
 type (
 	APIServer interface {
 		// Registers a new APIVersion to the APIServer
-		Register(APIVersion, map[Kind]func() APIVersionKind)
+		Register(avkFactory []AVKFactory)
 
 		// Get will return a zero valued instance of a Resource corresponding
 		// to the return AVK
@@ -52,63 +53,33 @@ type (
 
 	Reader[T APIVersionKind] interface {
 		// List resources.
-		List() ([]Resource[T], error)
-
-		// Get a resource by name. It returns types.ErrNotFound if the resource
-		// cannot be found.
-		Get(name string) (Resource[T], error)
+		Read() ([]Resource[T], error)
 	}
 
 	Renderer interface {
 		Render(APIServer) (string, error)
 	}
 
-	Storage[T APIVersionKind] interface {
-		Reader[T]
+	Storage interface {
+		// List resources.
+		List(avk APIVersionKind) ([]Resource[APIVersionKind], error)
+
+		// Get a resource by name. It returns types.ErrNotFound if the resource
+		// cannot be found.
+		Get(avk APIVersionKind, name string) (Resource[APIVersionKind], error)
 
 		// Creates a resource if it does not exist in the store.
-		Create(Resource[T]) error
+		Create(Resource[APIVersionKind]) error
 
 		// Update returns types.ErrNotFound if named resource cannot be found
-		Update(oldName string, v Resource[T]) error
+		Update(oldName string, v Resource[APIVersionKind]) error
 
 		// Delete a resource in the store. Delete is idempotent.
-		Delete(name string) error
-	}
-
-	StorageServer interface {
-		// Returns the Storage corresponding to the input APIVersionKind
-		Get(avk APIVersionKind) (Storage[APIVersionKind], error)
+		Delete(avk APIVersionKind, name string) error
 	}
 )
 
 type AVKFactory func() APIVersionKind
-
-func GetTypedStorage[T APIVersionKind](
-	storageServer StorageServer,
-) (Storage[T], error) {
-	avk := *new(T)
-
-	st, err := storageServer.Get(avk)
-	if err != nil {
-		return nil, err
-	}
-
-	typed, ok := st.(Storage[T])
-	if !ok {
-		return nil, flaterrors.Join(
-			ErrType,
-			ErrNotFound,
-			fmt.Errorf(
-				"storage cannot be found for: apiVersion=%q, kind=%q",
-				avk.APIVersion(),
-				avk.Kind(),
-			),
-		)
-	}
-
-	return typed, nil
-}
 
 var (
 	KindRegex         = regexp.MustCompile(`([A-Z][a-z]+)+`)
@@ -249,4 +220,58 @@ func NewAVKFromResource[T any](res Resource[T]) APIVersionKind {
 		apiVersion: res.APIVersion,
 		kind:       res.Kind,
 	}
+}
+
+func GetTypedResourceFromStorage[T APIVersionKind](
+	storage Storage,
+	name string,
+) (Resource[T], error) {
+	v := *new(T)
+	res, err := storage.Get(v, name)
+	if err != nil {
+		return Resource[T]{}, err
+	}
+
+	out := Resource[T]{
+		APIVersion: res.APIVersion,
+		Kind:       res.Kind,
+		Metadata:   res.Metadata,
+	}
+
+	var ok bool
+	out.Spec, ok = res.Spec.(T)
+	if !ok {
+		return out, errors.New("invalid type")
+	}
+
+	return out, nil
+}
+
+func ListTypedResourceFromStorage[T APIVersionKind](
+	storage Storage,
+) ([]Resource[T], error) {
+	v := *new(T)
+	list, err := storage.List(v)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]Resource[T], 0, len(list))
+	for _, res := range list {
+		typed := Resource[T]{
+			APIVersion: res.APIVersion,
+			Kind:       res.Kind,
+			Metadata:   res.Metadata,
+		}
+
+		var ok bool
+		typed.Spec, ok = res.Spec.(T)
+		if !ok {
+			return nil, errors.New("invalid type")
+		}
+
+		out = append(out, typed)
+	}
+
+	return out, nil
 }
