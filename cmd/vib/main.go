@@ -29,6 +29,17 @@ import (
 	"github.com/alexandremahdhaoui/vib/pkg/apis/v1alpha1"
 )
 
+// // ConfigSpec stores important information to run the vib command line.
+// // The config is always stored on disk, thus the Operator for managing Config will always be of type
+// // vib.FilesystemOperator.
+// type ConfigSpec struct {
+// 	// StorageStrategy defines which storage strategy must be used (only filesystem is supported).
+// 	StorageStrategy storageadapter.StorageStrategy
+// 	// ResourceDir specifies the absolute path to Resource definitions.
+// 	// Defaults to CONFIG_DIR/vib/resources
+// 	ResourceDir string
+// }
+
 const (
 	defaultStorageEncoding = types.YAMLEncoding
 	defaultOutputEncoding  = types.YAMLEncoding
@@ -85,7 +96,7 @@ func main() {
 		// edit(),
 	}
 
-	if len(flag.Args()) < 1 {
+	if len(os.Args) < 2 {
 		help(os.Stderr, cmds)
 		os.Exit(1)
 	}
@@ -96,16 +107,16 @@ func main() {
 
 	found := false
 	for _, cmd := range cmds {
-		if flag.Args()[0] != cmd.FS().Name() {
+		if os.Args[1] != cmd.FS().Name() {
 			continue
 		}
 
-		fmt.Println(flag.Args())
-
 		found = true
-		if err := cmd.FS().Parse(flag.Args()); err != nil {
-			help(os.Stderr, cmds) // actually not called
-			os.Exit(1)            // not called
+		if len(os.Args) > 1 {
+			if err := cmd.FS().Parse(os.Args[2:]); err != nil {
+				help(os.Stderr, cmds) // actually not called
+				os.Exit(1)            // not called
+			}
 		}
 
 		if err := cmd.Run(); err != nil {
@@ -190,7 +201,6 @@ func List(
 
 	out := make([]types.Resource[types.APIVersionKind], 0)
 	found := false
-
 	for _, res := range list {
 		if _, ok := nameFilter[res.Metadata.Name]; !ok {
 			continue

@@ -21,9 +21,9 @@ import (
 )
 
 type ExpressionSpec struct {
-	Key         string `json:"key"         yaml:"key"`
-	Value       string `json:"value"       yaml:"value"`
-	ResolverRef string `json:"resolverRef" yaml:"resolverRef"`
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	ResolverRef string `json:"resolverRef"`
 }
 
 // APIVersion implements types.DefinedResource.

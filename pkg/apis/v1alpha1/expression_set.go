@@ -24,13 +24,13 @@ import (
 type ExpressionSetSpec struct {
 	// ArbitraryKeys is used for special resolvers, such as plain that does not require associated values
 	// ArbitraryKeys are always rendered before KeyValues
-	ArbitraryKeys []string `json:"arbitraryKeys" yaml:"arbitraryKeys"`
+	ArbitraryKeys []string `json:"arbitraryKeys"`
 
 	// KeyValues uses a list of map to avoid reordered key-values
-	KeyValues []map[string]string `json:"keyValues" yaml:"keyValues"`
+	KeyValues []map[string]string `json:"keyValues"`
 
 	// ResolverRef
-	ResolverRef string `json:"resolverRef" yaml:"resolverRef"`
+	ResolverRef string `json:"resolverRef"`
 }
 
 // APIVersion implements types.DefinedResource.

@@ -20,7 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"go.yaml.in/yaml/v3"
+	// INFO: Package "sigs.k8s.io/yaml" ensures that json tags specifying
+	// omitempty are respected
+	"sigs.k8s.io/yaml"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 	"github.com/alexandremahdhaoui/vib/internal/types"

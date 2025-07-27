@@ -67,3 +67,6 @@ func JoinLine(buffer string, line string) string {
 
 	return strings.Join([]string{buffer, line}, "\n")
 }
+
+func Mv() {
+}

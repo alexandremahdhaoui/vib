@@ -19,6 +19,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 	codecadapter "github.com/alexandremahdhaoui/vib/internal/adapter/codec"
@@ -95,9 +96,10 @@ func (g *create) Run() error {
 		)
 	}
 
+	apiVersion := types.APIVersion(g.apiVersion)
 	kind := types.Kind(g.fs.Arg(0))
 	name := g.fs.Arg(1)
-	avk := types.NewAPIVersionKind("", kind)
+	avk := types.NewAPIVersionKind(apiVersion, kind)
 
 	res, err := g.apiServer.Get(avk)
 	if err != nil {
@@ -105,12 +107,13 @@ func (g *create) Run() error {
 	}
 
 	res.Metadata.Name = name
-
 	if err := g.storage.Create(res); err != nil {
 		return err
 	}
 
-	list, err := List(g.storage, g.apiVersion, types.NewKind(g.fs.Arg(0)), map[string]struct{}{})
+	slog.Info("successfully created resource", "name", res.Metadata.Name)
+
+	list, err := List(g.storage, res.APIVersion, types.NewKind(g.fs.Arg(0)), map[string]struct{}{})
 	if err != nil {
 		return err
 	}

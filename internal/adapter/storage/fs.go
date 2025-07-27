@@ -17,7 +17,6 @@ limitations under the License.
 package storageadapter
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -87,7 +86,7 @@ func (fs *filesystem) List(
 			continue
 		}
 
-		v, err := fs.read(fs.dirFromBasename(dentry.Name()))
+		v, err := fs.read(fs.joinResourceDirAndBasename(dentry.Name()))
 		if err != nil {
 			return nil, err
 		}
@@ -137,23 +136,19 @@ func (fs *filesystem) Create(res types.Resource[types.APIVersionKind]) error {
 }
 
 func (fs *filesystem) writeAtomic(v types.Resource[types.APIVersionKind]) error {
-	f, err := os.CreateTemp("", "vibtmp_*")
-	if err != nil {
-		return err
-	}
+	tmpDest := fs.tmpFilepathFromResourceName(v.Spec, v.Metadata.Name)
+	dest := fs.filepathFromResourceName(v.Spec, v.Metadata.Name)
 
 	b, err := fs.codec.Marshal(v)
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(f.Name(), b, 0640)
-	if err != nil {
+	if err = os.WriteFile(tmpDest, b, 0640); err != nil {
 		return err
 	}
 
-	dest := fs.filepathFromResourceName(v.Spec, v.Metadata.Name)
-	if err := os.Rename(f.Name(), dest); err != nil {
+	if err := os.Rename(tmpDest, dest); err != nil {
 		return err
 	}
 
@@ -161,16 +156,17 @@ func (fs *filesystem) writeAtomic(v types.Resource[types.APIVersionKind]) error 
 }
 
 func (fs *filesystem) Update(oldName string, v types.Resource[types.APIVersionKind]) error {
-	// Rename if required
-	if oldName != v.Metadata.Name {
-		oldPath := fs.filepathFromResourceName(v.Spec, oldName)
-		newPath := fs.filepathFromResourceName(v.Spec, v.Metadata.Name)
-		if err := os.Rename(oldPath, newPath); err != nil {
-			return err
-		}
+	if err := fs.writeAtomic(v); err != nil {
+		return err
 	}
 
-	return fs.writeAtomic(v)
+	// Remove old resource once new one has been created
+	if oldName != v.Metadata.Name {
+		oldPath := fs.filepathFromResourceName(v.Spec, oldName)
+		return os.Remove(oldPath)
+	}
+
+	return nil
 }
 
 func (fs *filesystem) Delete(avk types.APIVersionKind, name string) error {
@@ -189,34 +185,53 @@ func (fs *filesystem) read(path string) (types.Resource[types.APIVersionKind], e
 		return types.Resource[types.APIVersionKind]{}, err
 	}
 
-	raw := new(types.Resource[json.RawMessage])
-	if err := fs.codec.Unmarshal(b, raw); err != nil {
+	rawRes := new(types.Resource[any])
+	if err := fs.codec.Unmarshal(b, rawRes); err != nil {
 		return types.Resource[types.APIVersionKind]{}, err
 	}
 
-	out, err := fs.apiServer.Get(types.NewAPIVersionKind(raw.APIVersion, raw.Kind))
+	out, err := fs.apiServer.Get(types.NewAPIVersionKind(rawRes.APIVersion, rawRes.Kind))
 	if err != nil {
 		return types.Resource[types.APIVersionKind]{}, err
 	}
 
-	if err = fs.codec.Unmarshal(raw.Spec, &out.Spec); err != nil {
+	// NOTE: we must copy metadata over
+	out.Metadata = rawRes.Metadata
+
+	b, err = fs.codec.Marshal(rawRes.Spec)
+	if err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
+	}
+
+	if err = fs.codec.Unmarshal(b, &out.Spec); err != nil {
 		return types.Resource[types.APIVersionKind]{}, err
 	}
 
 	return out, nil
 }
 
-// dirFromBasename joins the resourceDir to the basename
-func (fs *filesystem) dirFromBasename(basename string) string {
+// joinResourceDirAndBasename joins the resourceDir to the basename
+func (fs *filesystem) joinResourceDirAndBasename(basename string) string {
 	return filepath.Join(fs.resourceDir, basename)
 }
 
-// filepathFromResourceName computes the resourceDir to the corresponding resource name, based on the naming convention
+// filepathFromResourceName computes the path to the corresponding resource name.
 func (fs *filesystem) filepathFromResourceName(
 	avk types.APIVersionKind,
 	resourceName string,
 ) string {
-	return fs.dirFromBasename(fs.basename(avk, resourceName))
+	basename := fs.basename(avk, resourceName)
+	return fs.joinResourceDirAndBasename(basename)
+}
+
+// filepathFromResourceName computes the resourceDir to the corresponding resource name, based on the naming convention
+func (fs *filesystem) tmpFilepathFromResourceName(
+	avk types.APIVersionKind,
+	resourceName string,
+) string {
+	basename := fs.basename(avk, resourceName)
+	tmpBasename := fmt.Sprintf(".tmp.%s", basename)
+	return fs.joinResourceDirAndBasename(tmpBasename)
 }
 
 // filepathFromResourceName computes the resource filename, based on the naming convention
@@ -228,15 +243,6 @@ func (fs *filesystem) basename(avk types.APIVersionKind, resourceName string) st
 		resourceName,
 		fs.codec.Encoding(),
 	))
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// GitStorage
-//----------------------------------------------------------------------------------------------------------------------
-
-// gitStorage uses FilesystemStrategy as a backend, and leverages Git for version control.
-type gitStorage[T types.APIVersionKind] struct {
-	_ filesystem // inner strategy
 }
 
 //----------------------------------------------------------------------------------------------------------------------

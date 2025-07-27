@@ -101,8 +101,8 @@ const (
 )
 
 type (
-	APIVersion string
-	Kind       string
+	APIVersion = string
+	Kind       = string
 )
 
 func NewAPIVersion(s string) APIVersion {
@@ -134,9 +134,9 @@ func ValidateKind(kind Kind) error {
 }
 
 type Metadata struct {
-	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"      yaml:"labels,omitempty"`
-	Name        string            `json:"name"                  yaml:"name"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Name        string            `json:"name"`
 }
 
 func NewMetadata(name string) Metadata {
@@ -144,10 +144,10 @@ func NewMetadata(name string) Metadata {
 }
 
 type Resource[T any] struct {
-	APIVersion APIVersion `json:"apiVersion" yaml:"apiVersion"`
-	Kind       Kind       `json:"kind"       yaml:"kind"`
-	Metadata   Metadata   `json:"metadata"   yaml:"metadata"`
-	Spec       T          `json:"spec"       yaml:"spec"`
+	APIVersion APIVersion `json:"apiVersion"`
+	Kind       Kind       `json:"kind"`
+	Metadata   Metadata   `json:"metadata"`
+	Spec       T          `json:"spec"`
 }
 
 func NewResource[T any](

@@ -18,6 +18,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
@@ -50,11 +51,12 @@ func (a *apiServer) Get(avk types.APIVersionKind) (types.Resource[types.APIVersi
 		return types.Resource[types.APIVersionKind]{}, err
 	}
 
+	spec := l.avkFactory()
 	return types.Resource[types.APIVersionKind]{
-		APIVersion: avk.APIVersion(),
-		Kind:       avk.Kind(),
+		APIVersion: spec.APIVersion(),
+		Kind:       spec.Kind(),
 		Metadata:   types.Metadata{},
-		Spec:       l.avkFactory(),
+		Spec:       spec,
 	}, nil
 }
 
@@ -70,13 +72,19 @@ func (a *apiServer) Register(avkFactory []types.AVKFactory) {
 }
 
 func (a *apiServer) computeAVKHash(avk types.APIVersionKind) avkHash {
-	return avkHash(fmt.Sprintf("%s-%s", avk.APIVersion(), avk.Kind()))
+	return avkHash(
+		fmt.Sprintf(
+			"%s-%s",
+			strings.ToLower(avk.APIVersion()),
+			strings.ToLower(avk.Kind())),
+	)
 }
 
 func (a *apiServer) getLeaf(avk types.APIVersionKind) (leaf, error) {
 	if v := avk.APIVersion(); v == "" {
 		for _, v := range a.registeredAPIVersions {
-			l, ok := a.leavesByHash[a.computeAVKHash(types.NewAPIVersionKind(v, avk.Kind()))]
+			newAVK := types.NewAPIVersionKind(v, avk.Kind())
+			l, ok := a.leavesByHash[a.computeAVKHash(newAVK)]
 			if ok {
 				return l, nil
 			}

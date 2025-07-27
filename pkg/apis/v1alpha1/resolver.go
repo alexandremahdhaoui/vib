@@ -59,11 +59,11 @@ const (
 )
 
 type ResolverSpec struct {
-	Type       string                  `json:"type"                 yaml:"type"`
-	Exec       *ExecResolverSpec       `json:"exec,omitempty"       yaml:"exec,omitempty"`
-	Fmt        *FmtResolverSpec        `json:"fmt,omitempty"        yaml:"fmt,omitempty"`
-	Plain      *PlainResolverSpec      `json:"plain,omitempty"      yaml:"plain,omitempty"`
-	GoTemplate *GotemplateResolverSpec `json:"gotemplate,omitempty" yaml:"gotemplate,omitempty"`
+	Type       string                  `json:"type"`
+	Exec       *ExecResolverSpec       `json:"exec,omitempty"`
+	Fmt        *FmtResolverSpec        `json:"fmt,omitempty"`
+	Plain      *PlainResolverSpec      `json:"plain,omitempty"`
+	GoTemplate *GotemplateResolverSpec `json:"gotemplate,omitempty"`
 }
 
 // APIVersion implements types.DefinedResource.
@@ -105,22 +105,22 @@ func (r ResolverSpec) Resolve(key string, value string) (string, error) {
 
 type (
 	ExecResolverSpec struct {
-		Command string   `json:"command"        yaml:"command"`
-		Args    []string `json:"args,omitempty" yaml:"args,omitempty"`
+		Command string   `json:"command"`
+		Args    []string `json:"args,omitempty"`
 
 		// Stdin can be formatted
 		// WARN: What?
-		Stdin string `json:"stdin,omitempty" yaml:"stdin,omitempty"`
+		Stdin string `json:"stdin,omitempty"`
 	}
 
 	FmtResolverSpec struct {
-		Template string `json:"template"     yaml:"template"`
+		Template string `json:"template"`
 		// FmtArguments is a list of FmtArgument, that will be used to format the template
-		FmtArguments []FmtArgument `json:"fmtArguments" yaml:"fmtArguments"`
+		FmtArguments []FmtArgument `json:"fmtArguments"`
 	}
 
 	GotemplateResolverSpec struct {
-		Template string `json:"template" yaml:"template"`
+		Template string `json:"template"`
 	}
 
 	PlainResolverSpec bool

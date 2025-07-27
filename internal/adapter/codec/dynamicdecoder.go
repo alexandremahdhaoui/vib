@@ -26,8 +26,31 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/types"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
-	"go.yaml.in/yaml/v3"
+	"sigs.k8s.io/yaml/goyaml.v3"
 )
+
+// TODO: BETTER IMPLEMENTATION:
+// - Create own Unmarshal{JSON,YAML} implementation
+// - Allow to directly access the apiServer when unmarshalling struct?
+
+// TODO: implement the following hack:
+// 1. Use standard decoder to read yaml into map[any]any.
+// 2. Marshal that map into json bytes.
+// 3. UnmarshalJSON into target struct.
+
+// TODO: decoder can be simplified by directly decoding into map[any]any
+// 1. Check if m["items"] exists?
+// 2. YES -> walk (each item):
+//           - Get apiVersion + Kind
+//           - Get resource from apiServer
+//           - Dump resource to json bytes
+//           - Unmarshal json bytes into typed spec from apiServer
+// 3. NO  -> Same as above get apiVersion + kind && unmarshal the spec
+
+// TODO: write unit tests to works as intended
+
+// TODO: Not urgent:
+// - LTS would be adding Encoder/Decoder iface to "sigs.k8s.io/yaml"
 
 type drd struct {
 	apiServer types.APIServer
@@ -50,7 +73,7 @@ var (
 )
 
 type resourceList[T any] struct {
-	Items []types.Resource[T] `json:"items"`
+	Items []types.Resource[T] `json:"items" yaml:"items"`
 }
 
 // Decode will try to decode the input as json and if it fails as yaml.
@@ -85,24 +108,27 @@ func (d drd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], e
 	for _, supportedDecoder := range []struct {
 		Decoder       decoder
 		UnmarshalFunc func(b []byte, v any) error
+		MarshalFunc   func(v any) ([]byte, error)
 	}{
 		{
 			Decoder:       json.NewDecoder(jsonBuf),
 			UnmarshalFunc: json.Unmarshal,
+			MarshalFunc:   json.Marshal,
 		}, {
 			Decoder:       yaml.NewDecoder(yamlBuf),
 			UnmarshalFunc: yaml.Unmarshal,
+			MarshalFunc:   yaml.Marshal,
 		},
 	} {
-		rawRes := make([]types.Resource[json.RawMessage], 0)
+		rawRes := make([]types.Resource[any], 0)
 		// -- resourceList[T]
-		rls, rlsErr := decode[resourceList[json.RawMessage]](supportedDecoder.Decoder)
+		rls, rlsErr := decode[resourceList[any]](supportedDecoder.Decoder)
 		for _, rl := range rls {
 			rawRes = append(rawRes, rl.Items...)
 		}
 
 		// -- types.Resource[T]
-		rs, rsErr := decode[types.Resource[json.RawMessage]](supportedDecoder.Decoder)
+		rs, rsErr := decode[types.Resource[any]](supportedDecoder.Decoder)
 		rawRes = append(rawRes, rs...)
 
 		// -- input is json/yaml but received error while parsing
@@ -127,7 +153,12 @@ func (d drd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], e
 				return nil, flaterrors.Join(err, fmtErrAtIndex(i))
 			}
 
-			if err := supportedDecoder.UnmarshalFunc(r.Spec, v); err != nil {
+			b, err := json.Marshal(r.Spec)
+			if err != nil {
+				return nil, flaterrors.Join(err, fmtErrAtIndex(i))
+			}
+
+			if err := supportedDecoder.UnmarshalFunc(b, &v.Spec); err != nil {
 				return nil, flaterrors.Join(err, fmtErrAtIndex(i))
 			}
 

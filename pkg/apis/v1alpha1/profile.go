@@ -25,7 +25,7 @@ type ProfileSpec struct {
 	// Refs is a list of reference to Expression or ExpressionSet
 	// TODO: ExpressionRefs must be validated to ensure no duplication.
 	// Name duplication would yield unexpected behavior
-	Refs []string `json:"refs" yaml:"setRefs"`
+	Refs []string `json:"refs"`
 }
 
 // APIVersion implements types.DefinedResource.
