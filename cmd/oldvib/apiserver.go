@@ -28,7 +28,7 @@ import (
 )
 
 func NewAPIServer(apiKinds []service.APIKind) (service.APIServer, error) {
-	service.New()
+	service.NewAPIServer()
 	server := service.NewAPIServer()
 
 	for _, apiKind := range apiKinds {

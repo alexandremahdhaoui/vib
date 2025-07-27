@@ -33,10 +33,11 @@ type (
 )
 
 type apiServer struct {
-	leavesByHash map[avkHash]leaf
+	leavesByHash          map[avkHash]leaf
+	registeredAPIVersions []types.APIVersion
 }
 
-func New() types.APIServer {
+func NewAPIServer() types.APIServer {
 	return &apiServer{
 		leavesByHash: make(map[avkHash]leaf),
 	}
@@ -61,6 +62,7 @@ func (a *apiServer) Get(avk types.APIVersionKind) (types.Resource[types.APIVersi
 func (a *apiServer) Register(avkFactory []types.AVKFactory) {
 	for _, f := range avkFactory {
 		avk := f()
+		a.registeredAPIVersions = append(a.registeredAPIVersions, avk.APIVersion())
 		a.leavesByHash[a.computeAVKHash(avk)] = leaf{
 			avkFactory: f,
 		}
@@ -72,9 +74,21 @@ func (a *apiServer) computeAVKHash(avk types.APIVersionKind) avkHash {
 }
 
 func (a *apiServer) getLeaf(avk types.APIVersionKind) (leaf, error) {
+	if v := avk.APIVersion(); v == "" {
+		for _, v := range a.registeredAPIVersions {
+			l, ok := a.leavesByHash[a.computeAVKHash(types.NewAPIVersionKind(v, avk.Kind()))]
+			if ok {
+				return l, nil
+			}
+		}
+
+		return leaf{}, types.ErrNotFound
+	}
+
 	l, ok := a.leavesByHash[a.computeAVKHash(avk)]
 	if !ok {
 		return leaf{}, types.ErrNotFound
 	}
+
 	return l, nil
 }

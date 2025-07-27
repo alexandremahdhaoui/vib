@@ -5,9 +5,13 @@ TODOs:
     - Add usage and getting started section
     - Add more example
   code:
-    - 'Depend on the least amount of packages (hopefully only yamlv3 package)':
-        - Remove `urfave/cli` -> use std library
-    - refactor internal/
-    - refactor cmd/
-    - Implement APIServer
+    Resources:
+      - Config
+      - Namespaces e.g. allow configuring multiple directories
+      - DocConfig: |
+          DocConfig can be used to set up a new directory containing
+          notes or docs.
+    Commands:
+      - grep: |
+          Allow searching resources containing a regex.
 

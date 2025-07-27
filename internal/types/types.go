@@ -57,7 +57,7 @@ type (
 	}
 
 	Renderer interface {
-		Render(APIServer) (string, error)
+		Render(storage Storage) (string, error)
 	}
 
 	Storage interface {
@@ -213,6 +213,13 @@ func (a avk) APIVersion() APIVersion {
 // Kind implements APIVersionKind.
 func (a avk) Kind() Kind {
 	return a.kind
+}
+
+func NewAPIVersionKind(apiVersion APIVersion, kind Kind) APIVersionKind {
+	return avk{
+		apiVersion: apiVersion,
+		kind:       kind,
+	}
 }
 
 func NewAVKFromResource[T any](res Resource[T]) APIVersionKind {

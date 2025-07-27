@@ -17,6 +17,7 @@ limitations under the License.
 package storageadapter
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -34,8 +35,9 @@ import (
 
 // NewFilesystem instantiate a new strategy
 func NewFilesystem(
-	resourceDir string,
+	apiServer types.APIServer,
 	codec types.Codec,
+	resourceDir string,
 ) (types.Storage, error) {
 	// ensure the resourceDir exists
 	if err := os.MkdirAll(resourceDir, 0777); err != nil {
@@ -45,6 +47,7 @@ func NewFilesystem(
 	return &filesystem{
 		resourceDir: resourceDir,
 		codec:       codec,
+		apiServer:   apiServer,
 	}, nil
 }
 
@@ -54,6 +57,7 @@ func NewFilesystem(
 type filesystem struct {
 	resourceDir string
 	codec       types.Codec
+	apiServer   types.APIServer
 }
 
 func (fs *filesystem) List(
@@ -118,15 +122,14 @@ func (fs *filesystem) Create(res types.Resource[types.APIVersionKind]) error {
 
 	if exist {
 		return flaterrors.Join(
+			types.ErrExist,
 			fmt.Errorf(
 				"apiVersion: %q, kind: %q, name: %q",
-				types.ErrExist,
 				res.APIVersion,
 				res.Kind,
 				res.Metadata.Name,
 			),
 			errors.New("cannot create resource"),
-			types.ErrExist,
 		)
 	}
 
@@ -186,11 +189,21 @@ func (fs *filesystem) read(path string) (types.Resource[types.APIVersionKind], e
 		return types.Resource[types.APIVersionKind]{}, err
 	}
 
-	v := new(types.Resource[types.APIVersionKind])
-	if err := fs.codec.Unmarshal(b, v); err != nil {
+	raw := new(types.Resource[json.RawMessage])
+	if err := fs.codec.Unmarshal(b, raw); err != nil {
 		return types.Resource[types.APIVersionKind]{}, err
 	}
-	return *v, nil
+
+	out, err := fs.apiServer.Get(types.NewAPIVersionKind(raw.APIVersion, raw.Kind))
+	if err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
+	}
+
+	if err = fs.codec.Unmarshal(raw.Spec, &out.Spec); err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
+	}
+
+	return out, nil
 }
 
 // dirFromBasename joins the resourceDir to the basename
@@ -221,8 +234,8 @@ func (fs *filesystem) basename(avk types.APIVersionKind, resourceName string) st
 // GitStorage
 //----------------------------------------------------------------------------------------------------------------------
 
-// GitStorage uses FilesystemStrategy as a backend, and leverages Git for version control.
-type GitStorage[T types.APIVersionKind] struct {
+// gitStorage uses FilesystemStrategy as a backend, and leverages Git for version control.
+type gitStorage[T types.APIVersionKind] struct {
 	_ filesystem // inner strategy
 }
 

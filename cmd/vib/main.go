@@ -20,94 +20,218 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+
+	codecadapter "github.com/alexandremahdhaoui/vib/internal/adapter/codec"
+	storageadapter "github.com/alexandremahdhaoui/vib/internal/adapter/storage"
+	"github.com/alexandremahdhaoui/vib/internal/service"
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/pkg/apis/v1alpha1"
 )
 
 const (
-	cliName = "vib"
+	defaultStorageEncoding = types.YAMLEncoding
+	defaultOutputEncoding  = types.YAMLEncoding
 )
 
+type Command interface {
+	Description() string
+	FS() *flag.FlagSet
+	Run() error
+}
+
 func main() {
-	cmds := map[*flag.FlagSet]func(){
-		applyFlagSet(): apply(),
-		createFlagSet(),
-		delFlagSet(),
-		editFlagSet(),
-		getFlagSet(),
-		renderFlagSet(),
+	// --------------------
+	// - INIT
+	// --------------------
+
+	apiServer := service.NewAPIServer()
+	v1alpha1.RegisterWithManager(apiServer)
+
+	// storage encoding
+	storageCodec, err := codecadapter.New(defaultStorageEncoding)
+	if err != nil {
+		errAndExit(err)
+		return
 	}
 
-	if len(os.Args) < 2 {
-		usage(os.Stderr, cmds)
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		errAndExit(err)
+		return
+	}
+
+	storage, err := storageadapter.NewFilesystem(
+		apiServer,
+		storageCodec,
+		filepath.Join(userConfigDir, "vib"),
+	)
+	if err != nil {
+		errAndExit(err)
+		return
+	}
+
+	// --------------------
+	// - DECLARE CMDS
+	// --------------------
+
+	cmds := []Command{
+		NewGet(storage),
+		NewRender(storage),
+		NewCreate(apiServer, storage),
+		// apply(),
+		// grep(),
+		// del(),
+		// edit(),
+	}
+
+	if len(flag.Args()) < 1 {
+		help(os.Stderr, cmds)
 		os.Exit(1)
 	}
 
-	for fs, f := range cmds {
-		if os.Args[1] == cmd.Name() {
-			f()
-		}
-	}
-}
+	// --------------------
+	// - RUN CMDS
+	// --------------------
 
-func usage(w io.Writer, cmds []*flag.FlagSet) {
-	_, _ = fmt.Fprintf(w, "USAGE: %s [command]\n", os.Args[0])
-	_, _ = fmt.Fprintf(w, "Available Commands:\n")
+	found := false
 	for _, cmd := range cmds {
-		_, _ = fmt.Fprintf(w, "\t%s\t%s\n\n", cmd.Name(), cmd.Usage)
+		if flag.Args()[0] != cmd.FS().Name() {
+			continue
+		}
+
+		fmt.Println(flag.Args())
+
+		found = true
+		if err := cmd.FS().Parse(flag.Args()); err != nil {
+			help(os.Stderr, cmds) // actually not called
+			os.Exit(1)            // not called
+		}
+
+		if err := cmd.Run(); err != nil {
+			errAndExit(err)
+			return
+		}
+
+		break
+	}
+
+	if !found {
+		help(os.Stderr, cmds)
+		os.Exit(1)
 	}
 }
 
-// ---------------------------------------------------------------------
-// - APPLY
-// ---------------------------------------------------------------------
-
-func applyFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet("apply", flag.ExitOnError)
-	return fs
+func errAndExit(err error) {
+	fmt.Fprintln(os.Stderr, err.Error())
+	os.Exit(1)
 }
 
-func apply() error {}
+const usageFmt = `USAGE: %s [command]
 
-// ---------------------------------------------------------------------
-// - CREATE
-// ---------------------------------------------------------------------
+Available Commands:
 
-func createFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet("create", flag.ExitOnError)
-	return fs
-}
+`
 
-// ---------------------------------------------------------------------
-// - DELETE
-// ---------------------------------------------------------------------
+func help(w io.Writer, cmds []Command) {
+	fmt.Fprintf(w, usageFmt, os.Args[0]) //nolint: errcheck
 
-func delFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet("delete", flag.ExitOnError)
-	return fs
-}
+	for _, cmd := range cmds {
+		fmt.Fprintf(w, "%s\n", cmd.FS().Name()) //nolint: errcheck
 
-// ---------------------------------------------------------------------
-// - EDIT
-// ---------------------------------------------------------------------
+		// TODO: ensure that description does not exceed (80-indent) charachters per line
+		indent := "\t"
+		fmt.Fprintf(w, "%s%s\n", indent, cmd.Description()) //nolint: errcheck
+		fmt.Fprintf(w, "%sFlags:\n", indent)                //nolint: errcheck
 
-func editFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet("edit", flag.ExitOnError)
-	return fs
-}
+		indent = "\t\t"
+		cmd.FS().VisitAll(func(fl *flag.Flag) {
+			var longFlag string
+			if len(fl.Name) > 1 {
+				longFlag = "-"
+			}
 
-// ---------------------------------------------------------------------
-// - GET
-// ---------------------------------------------------------------------
+			fmt.Fprintf(w, "%s-%s%s\t%s\n", indent, longFlag, fl.Name, fl.Usage) //nolint: errcheck
+		})
 
-func getFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet("get", flag.ExitOnError)
-	return fs
+		fmt.Fprintf(w, "\n") //nolint: errcheck
+	}
+
+	fmt.Fprintf(w, "\n") //nolint: errcheck
 }
 
 // ---------------------------------------------------------------------
-// - RENDER
+// - LIST RESOURCES
 // ---------------------------------------------------------------------
 
-func renderFlagSet() *flag.FlagSet {
-	fs := flag.NewFlagSet("render", flag.ExitOnError)
-	return fs
+type ListArgs struct {
+	APIVersion types.APIVersion
+	Kind       types.Kind
+	NameFilter map[string]struct{}
+}
+
+// List must return a list of resources.
+// The caller (i.e. "get") can then choose how to format the result.
+// List can be used for other calls such as render
+func List(
+	storage types.Storage,
+	apiVersion types.APIVersion,
+	kind types.Kind,
+	nameFilter map[string]struct{},
+) ([]types.Resource[types.APIVersionKind], error) {
+	list, err := storage.List(types.NewAPIVersionKind(apiVersion, kind))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(nameFilter) == 0 {
+		return list, nil
+	}
+
+	out := make([]types.Resource[types.APIVersionKind], 0)
+	found := false
+
+	for _, res := range list {
+		if _, ok := nameFilter[res.Metadata.Name]; !ok {
+			continue
+		}
+		out = append(out, res)
+		found = true
+	}
+
+	if !found {
+		return nil, errResource(
+			"cannot find resource",
+			apiVersion,
+			kind,
+			fmtSet(nameFilter),
+		)
+	}
+
+	return out, nil
+}
+
+// ---------------------------------------------------------------------
+// - HELPERS
+// ---------------------------------------------------------------------
+
+func errResource(errStr string, apiVersion types.APIVersion, kind types.Kind, name string) error {
+	return fmt.Errorf(
+		"%s: apiVersion=%q,kind=%q,nameFilters=%q",
+		errStr,
+		apiVersion,
+		kind,
+		name,
+	)
+}
+
+func fmtSet(set map[string]struct{}) string {
+	if len(set) == 0 {
+		return ""
+	}
+	var out string
+	for s := range set {
+		out = fmt.Sprintf("%s, %s", out, s)
+	}
+	return fmt.Sprintf("[%s]", out[2:])
 }
