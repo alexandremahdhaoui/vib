@@ -96,7 +96,7 @@ func (g *get) Run() error {
 		nameFilter[g.fs.Arg(i)] = struct{}{}
 	}
 
-	list, err := List(g.storage, g.apiVersion, types.NewKind(g.fs.Arg(0)), nameFilter)
+	list, err := List(g.storage, g.apiVersion, types.Kind(g.fs.Arg(0)), nameFilter)
 	if err != nil {
 		return err
 	}

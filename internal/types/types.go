@@ -119,10 +119,6 @@ func ValidateAPIVersion(apiVersion APIVersion) error {
 	return nil
 }
 
-func NewKind(s string) Kind {
-	return Kind(strings.ToLower(s))
-}
-
 func ValidateKind(kind Kind) error {
 	if !LoweredKindRegex.MatchString(string(kind)) {
 		return flaterrors.Join(

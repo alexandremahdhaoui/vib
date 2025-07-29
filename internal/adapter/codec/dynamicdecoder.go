@@ -26,12 +26,8 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/types"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
-	"sigs.k8s.io/yaml/goyaml.v3"
+	yaml "sigs.k8s.io/yaml/goyaml.v3"
 )
-
-// TODO: BETTER IMPLEMENTATION:
-// - Create own Unmarshal{JSON,YAML} implementation
-// - Allow to directly access the apiServer when unmarshalling struct?
 
 // TODO: implement the following hack:
 // 1. Use standard decoder to read yaml into map[any]any.
@@ -56,12 +52,129 @@ type drd struct {
 	apiServer types.APIServer
 }
 
-// Instantiate a new detector. A detector is a special codec that can unmarshal one or many documents from
-// one or many types.
+// Instantiate a new dynamic resource decoder. A dynamic resource decoder is a special codec
+// that can unmarshal one or many documents from any supported encoding.
 func NewDynamicResourceDecoder(
 	apiServer types.APIServer,
 ) types.DynamicDecoder[types.APIVersionKind] {
 	return drd{
+		apiServer: apiServer,
+	}
+}
+
+type rawDrd struct {
+	apiServer types.APIServer
+}
+
+func (d *rawDrd) decodeOne(v map[any]any) (types.Resource[types.APIVersionKind], error) {
+	// Ignore types assertion as "apiServer.Get" will return ERRNOTFOUND in the worst case scenario
+	apiVersion, _ := v["apiVersion"].(string)
+	kind, _ := v["kind"].(string)
+	avk := types.NewAPIVersionKind(apiVersion, kind)
+	out, err := d.apiServer.Get(avk)
+	if err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
+	}
+
+	b, err := json.Marshal(v)
+	if err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
+	}
+
+	if err = json.Unmarshal(b, &out); err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
+	}
+
+	return out, nil
+}
+
+// Decode implements types.DynamicDecoder.
+func (d *rawDrd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], error) {
+	b, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(b) == 0 {
+		return nil, flaterrors.Join(errInputMustNotBeEmpty, errDecodingInput)
+	}
+
+	bCopy := make([]byte, len(b))
+	copied := copy(bCopy, b)
+	if copied < len(b) {
+		return nil, flaterrors.Join(errors.New("internal error"), errDecodingInput)
+	}
+
+	// -- [ json yaml ]
+	jsonBuf := bytes.NewBuffer(b)
+	yamlBuf := bytes.NewBuffer(bCopy)
+
+	for _, supportedDecoder := range []struct {
+		IsJSON        bool
+		Decoder       decoder
+		UnmarshalFunc func(b []byte, v any) error
+		MarshalFunc   func(v any) ([]byte, error)
+	}{
+		{
+			IsJSON:        true,
+			Decoder:       json.NewDecoder(jsonBuf),
+			UnmarshalFunc: json.Unmarshal,
+			MarshalFunc:   json.Marshal,
+		},
+
+		{
+			Decoder:       yaml.NewDecoder(yamlBuf),
+			UnmarshalFunc: yaml.Unmarshal,
+			MarshalFunc:   yaml.Marshal,
+		},
+	} {
+		objectList, err := decodeRaw(supportedDecoder.Decoder)
+		if len(objectList) > 0 && err != nil {
+			// -- input is json/yaml but received error while parsing
+			return nil, flaterrors.Join(err, errDecodingInput)
+		} else if err != nil {
+			// -- input not decoded: try another supported decoder
+			continue
+		}
+
+		out := make([]types.Resource[types.APIVersionKind], 0)
+		for i, obj := range objectList {
+			if v, ok := obj["items"]; ok {
+				// TODO: handle list items
+				list, ok := v.([]map[any]any)
+				if !ok {
+					return nil, errors.New("TODO")
+				}
+				for _, raw := range list {
+					item, err := d.decodeOne(raw)
+					if err != nil {
+						return nil, flaterrors.Join(err, fmtErrAtIndex(i))
+					}
+					out = append(out, item)
+				}
+			} else {
+				item, err := d.decodeOne(obj)
+				if err != nil {
+					return nil, flaterrors.Join(err, fmtErrAtIndex(i))
+				}
+				out = append(out, item)
+			}
+		}
+
+		// -- At this point, the output can be safely returned
+		return out, nil
+	}
+
+	// -- invalid input
+	return nil, flaterrors.Join(errInputMustBeJsonOrYaml, errDecodingInput)
+}
+
+// Instantiate a new dynamic resource decoder. A dynamic resource decoder is a special codec
+// that can unmarshal one or many documents from any supported encoding.
+func NewRawDynamicResourceDecoder(
+	apiServer types.APIServer,
+) types.DynamicDecoder[types.APIVersionKind] {
+	return &rawDrd{
 		apiServer: apiServer,
 	}
 }
@@ -85,7 +198,7 @@ type resourceList[T any] struct {
 // 3. For type := range [ resourceList[Resource[T]] Resource[T] ]
 // 4. Decode type until input is exhausted
 func (d drd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], error) {
-	// not really cool clean but we want to copy the buffer
+	// not really clean but we want to copy the buffer
 	b, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -108,16 +221,13 @@ func (d drd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], e
 	for _, supportedDecoder := range []struct {
 		Decoder       decoder
 		UnmarshalFunc func(b []byte, v any) error
-		MarshalFunc   func(v any) ([]byte, error)
 	}{
 		{
 			Decoder:       json.NewDecoder(jsonBuf),
 			UnmarshalFunc: json.Unmarshal,
-			MarshalFunc:   json.Marshal,
 		}, {
 			Decoder:       yaml.NewDecoder(yamlBuf),
 			UnmarshalFunc: yaml.Unmarshal,
-			MarshalFunc:   yaml.Marshal,
 		},
 	} {
 		rawRes := make([]types.Resource[any], 0)
@@ -145,6 +255,9 @@ func (d drd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], e
 			continue
 		}
 
+		b, _ = yaml.Marshal(rawRes)
+		fmt.Println(string(b))
+
 		// -- unmarshal inner objects
 		out := make([]types.Resource[types.APIVersionKind], 0)
 		for i, r := range rawRes {
@@ -152,6 +265,8 @@ func (d drd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], e
 			if err != nil {
 				return nil, flaterrors.Join(err, fmtErrAtIndex(i))
 			}
+
+			v.Metadata = r.Metadata
 
 			b, err := json.Marshal(r.Spec)
 			if err != nil {
@@ -186,6 +301,24 @@ func decode[T any](d decoder) ([]T, error) {
 		}
 		i++
 		out = append(out, *v)
+	}
+	return out, nil
+}
+
+// raw decoding into map[any]any
+func decodeRaw(d decoder) ([]map[any]any, error) {
+	out := make([]map[any]any, 0)
+	done := false
+	i := 0
+	for !done {
+		var v map[any]any
+		if err := d.Decode(&v); errors.Is(err, io.EOF) {
+			done = true // End of file/stream
+		} else if err != nil {
+			return nil, flaterrors.Join(err, fmtErrAtIndex(i))
+		}
+		i++
+		out = append(out, v)
 	}
 	return out, nil
 }

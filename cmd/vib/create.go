@@ -113,7 +113,7 @@ func (g *create) Run() error {
 
 	slog.Info("successfully created resource", "name", res.Metadata.Name)
 
-	list, err := List(g.storage, res.APIVersion, types.NewKind(g.fs.Arg(0)), map[string]struct{}{})
+	list, err := List(g.storage, res.APIVersion, types.Kind(g.fs.Arg(0)), map[string]struct{}{})
 	if err != nil {
 		return err
 	}

@@ -75,7 +75,7 @@ func (r *render) Run() error {
 		)
 	}
 
-	kind := types.NewKind(r.fs.Arg(0))
+	kind := types.Kind(r.fs.Arg(0))
 	nameFilter := map[string]struct{}{
 		r.fs.Arg(1): {},
 	}
