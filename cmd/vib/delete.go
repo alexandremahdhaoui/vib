@@ -70,7 +70,7 @@ func (d *del) FS() *flag.FlagSet {
 func (d *del) Run() error {
 	if d.fs.NArg() < 2 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"Delete\" expects at least two argument"),
+			errors.New("\"DELETE\" expects at least TWO argument"),
 			errors.New(createDesc), //nolint staticcheck
 		)
 	}

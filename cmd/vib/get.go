@@ -72,7 +72,7 @@ func (g *get) Description() string {
 func (g *get) Run() error {
 	if g.fs.NArg() < 1 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"Get\" expects at least ONE argument"),
+			errors.New("\"GET\" expects at least ONE argument"),
 			errors.New(getDesc), //nolint staticcheck
 		)
 	}

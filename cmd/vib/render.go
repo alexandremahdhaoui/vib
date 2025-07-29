@@ -67,7 +67,7 @@ func (r *render) Description() string {
 func (r *render) Run() error {
 	if r.fs.NArg() < 2 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"Render\" requires TWO arguments"),
+			errors.New("\"RENDER\" requires TWO arguments"),
 			errors.New(renderDesc), //nolint staticcheck
 		)
 	}

@@ -80,7 +80,7 @@ func (g *create) Run() error {
 
 	if g.fs.NArg() < 2 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"Create\" expects TWO argument"),
+			errors.New("\"CREATE\" expects TWO argument"),
 			errors.New(createDesc), //nolint staticcheck
 		)
 	}
@@ -113,7 +113,7 @@ func (g *create) Run() error {
 	}
 
 	if len(list) != 1 {
-		return errors.New("[ERROR] fetching newly created resource")
+		return errors.New("fetching newly created resource")
 	}
 
 	b, err := outputCodec.Marshal(list[0])

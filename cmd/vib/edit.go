@@ -93,7 +93,7 @@ func (e *edit) Run() error {
 
 	if e.fs.NArg() < 2 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"EDIT\" expects at least TWO argument"),
+			errors.New("\"EDIT\" expects at least TWO argument"),
 			errors.New(getDesc), //nolint staticcheck
 		)
 	}
@@ -151,7 +151,7 @@ func (e *edit) Run() error {
 		if res.APIVersion != apiVersion ||
 			res.Kind != kind ||
 			res.Metadata.Name != name {
-			return errors.New(`[ERROR] "apiVersion", "kind" and "name" are unmutable`)
+			return errors.New(`"apiVersion", "kind" and "name" are unmutable`)
 		}
 
 		// -- 3. For each resource: Update

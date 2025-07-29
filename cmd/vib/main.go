@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -66,14 +67,14 @@ func main() {
 	// -- storage encoding
 	storageCodec, err := codecadapter.New(defaultStorageEncoding)
 	if err != nil {
-		errAndExit(err)
+		logErrAndExit(err)
 		return
 	}
 
 	// -- vib config dir
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
-		errAndExit(err)
+		logErrAndExit(err)
 		return
 	}
 	vibConfigDir := filepath.Join(userConfigDir, "vib")
@@ -85,7 +86,7 @@ func main() {
 		vibConfigDir,
 	)
 	if err != nil {
-		errAndExit(err)
+		logErrAndExit(err)
 		return
 	}
 
@@ -127,7 +128,7 @@ func main() {
 		}
 
 		if err := cmd.Run(); err != nil {
-			errAndExit(err)
+			logErrAndExit(err)
 			return
 		}
 
@@ -140,8 +141,8 @@ func main() {
 	}
 }
 
-func errAndExit(err error) {
-	fmt.Fprintln(os.Stderr, err.Error())
+func logErrAndExit(err error) {
+	slog.Error(err.Error())
 	os.Exit(1)
 }
 
