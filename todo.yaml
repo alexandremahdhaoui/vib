@@ -12,6 +12,9 @@ TODOs:
           DocConfig can be used to set up a new directory containing
           notes or docs.
     Commands:
+      - apply: |
+          User can "CreateOrUpdate" many resources in batch.
+          It requires the "-f" flag.
       - grep: |
-          Allow searching resources containing a regex.
+          User can search resources content by regex.
 

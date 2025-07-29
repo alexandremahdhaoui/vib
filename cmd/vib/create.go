@@ -106,7 +106,8 @@ func (g *create) Run() error {
 		"kind", res.Kind,
 	)
 
-	list, err := List(g.storage, res.APIVersion, types.Kind(g.fs.Arg(0)), map[string]struct{}{})
+	nameFilter := map[string]struct{}{name: {}}
+	list, err := List(g.storage, res.APIVersion, types.Kind(g.fs.Arg(0)), nameFilter)
 	if err != nil {
 		return err
 	}

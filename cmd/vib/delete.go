@@ -75,10 +75,13 @@ func (d *del) Run() error {
 		)
 	}
 
-	kind := d.fs.Arg(0)
-	name := d.fs.Arg(1)
-	avk := types.NewAPIVersionKind(d.apiVersion, kind)
+	names := make([]string, d.fs.NArg()-1)
+	for i := 1; i < d.fs.NArg(); i++ {
+		names[i-1] = d.fs.Arg(i)
+	}
 
+	kind := d.fs.Arg(0)
+	avk := types.NewAPIVersionKind(d.apiVersion, kind)
 	// The input apiVersion might be an empty string.
 	// This ensure the apiVersion is specified
 	res, err := d.apiServer.Get(avk)
@@ -87,15 +90,18 @@ func (d *del) Run() error {
 	}
 
 	specificAvk := types.NewAVKFromResource(res)
-	if err := d.storage.Delete(specificAvk, name); err != nil {
-		return err
+	for _, name := range names {
+		if err := d.storage.Delete(specificAvk, name); err != nil {
+			return err
+		}
+
+		slog.Info(
+			"Successfully deleted resource",
+			"name", name,
+			"apiVersion", specificAvk.APIVersion(),
+			"kind", specificAvk.Kind(),
+		)
 	}
 
-	slog.Info(
-		"Successfully deleted resource",
-		"name", res.Metadata.Name,
-		"apiVersion", res.APIVersion,
-		"kind", res.Kind,
-	)
 	return nil
 }
