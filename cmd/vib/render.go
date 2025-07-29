@@ -28,29 +28,26 @@ const renderDesc = `
 	Description:
 		Render a resource of kind "KIND".
 	Usage:
-		vib render KIND NAME {flags}
+		vib render [flags] KIND NAME
 	Args:
 		KIND: The kind of the resource to render.
 		NAME: The name of the resource to render.`
 
-func NewRender(storage types.Storage) Command {
+func NewRender(apiServer types.APIServer, storage types.Storage) Command {
 	out := &render{
+		apiServer:  apiServer,
 		apiVersion: "",
 		fs:         flag.NewFlagSet("render", flag.ExitOnError),
 		storage:    storage,
 	}
 
-	out.fs.StringVar(
-		(*string)(&out.apiVersion),
-		"apiVersion",
-		"",
-		"The APIVersion of the resource to render",
-	)
+	NewAPIVersionFlag(out.fs, &out.apiVersion)
 
 	return out
 }
 
 type render struct {
+	apiServer  types.APIServer
 	apiVersion types.APIVersion
 	fs         *flag.FlagSet
 	storage    types.Storage
@@ -70,29 +67,36 @@ func (r *render) Description() string {
 func (r *render) Run() error {
 	if r.fs.NArg() < 2 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"\" requires at least two arguments"),
+			errors.New("[ERROR] \"Render\" requires TWO arguments"),
 			errors.New(renderDesc), //nolint staticcheck
 		)
 	}
 
-	kind := types.Kind(r.fs.Arg(0))
-	nameFilter := map[string]struct{}{
-		r.fs.Arg(1): {},
-	}
+	// -- get avk with specific apiVersion
+	kind := r.fs.Arg(0)
+	name := r.fs.Arg(1)
+	avk := types.NewAPIVersionKind(r.apiVersion, kind)
 
-	list, err := List(r.storage, r.apiVersion, kind, nameFilter)
+	// The input apiVersion might be an empty string.
+	// This ensure the apiVersion is specified
+	res, err := r.apiServer.Get(avk)
 	if err != nil {
 		return err
 	}
 
-	res := list[0]
-	renderer, ok := any(res.Spec).(types.Renderer)
+	specificAvk := types.NewAVKFromResource(res)
+	resource, err := r.storage.Get(specificAvk, name)
+	if err != nil {
+		return err
+	}
+
+	renderer, ok := any(resource.Spec).(types.Renderer)
 	if !ok {
 		return fmt.Errorf(
 			"cannot render resource: apiVersion=%q,kind=%q,name=%q",
-			res.APIVersion,
-			res.Kind,
-			res.Metadata.Name,
+			resource.APIVersion,
+			resource.Kind,
+			resource.Metadata.Name,
 		)
 	}
 

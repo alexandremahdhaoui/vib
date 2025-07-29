@@ -59,9 +59,15 @@ type filesystem struct {
 	apiServer   types.APIServer
 }
 
+var errAPIVersionMustBeSpecified = errors.New("apiVersion must be specified")
+
 func (fs *filesystem) List(
 	avk types.APIVersionKind,
 ) ([]types.Resource[types.APIVersionKind], error) {
+	if avk.APIVersion() == "" {
+		return nil, errAPIVersionMustBeSpecified
+	}
+
 	res := make([]types.Resource[types.APIVersionKind], 0)
 	// Get all instance of T.
 	dentries, err := os.ReadDir(fs.resourceDir)
@@ -102,6 +108,10 @@ func (fs *filesystem) Get(
 	avk types.APIVersionKind,
 	name string,
 ) (types.Resource[types.APIVersionKind], error) {
+	if avk.APIVersion() == "" {
+		return types.Resource[types.APIVersionKind]{}, errAPIVersionMustBeSpecified
+	}
+
 	v, err := fs.read(fs.filepathFromResourceName(avk, name))
 	if os.IsNotExist(err) {
 		return types.Resource[types.APIVersionKind]{}, flaterrors.Join(err, types.ErrNotFound)
@@ -170,6 +180,10 @@ func (fs *filesystem) Update(oldName string, v types.Resource[types.APIVersionKi
 }
 
 func (fs *filesystem) Delete(avk types.APIVersionKind, name string) error {
+	if avk.APIVersion() == "" {
+		return errAPIVersionMustBeSpecified
+	}
+
 	return os.Remove(fs.filepathFromResourceName(avk, name))
 }
 

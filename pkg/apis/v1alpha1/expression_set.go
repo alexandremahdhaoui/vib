@@ -45,8 +45,9 @@ func (e ExpressionSetSpec) Kind() types.Kind {
 
 // Render implements types.Renderer.
 func (e *ExpressionSetSpec) Render(storage types.Storage) (string, error) {
-	// TODO: validate the resource names
-	// if err := api.ValidateResourceName(expressionSet.ResolverRef); err != nil {
+	if err := types.ValidateResourceName(e.ResolverRef); err != nil {
+		return "", err
+	}
 
 	resolver, err := types.GetTypedResourceFromStorage[ResolverSpec](storage, e.ResolverRef)
 	if err != nil {

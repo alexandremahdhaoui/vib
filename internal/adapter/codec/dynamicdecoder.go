@@ -34,6 +34,11 @@ import (
 // TODO: Not urgent:
 // - LTS would be adding Encoder/Decoder iface to "sigs.k8s.io/yaml"
 
+// -- utility interface
+type decoder interface {
+	Decode(v any) error
+}
+
 // Instantiate a new dynamic resource decoder. A dynamic resource decoder is a special codec
 // that can unmarshal one or many documents from any supported encoding.
 func NewDynamicResourceDecoder(
@@ -53,10 +58,6 @@ var (
 	errDecodingInput         = errors.New("error decoding input")
 	errInputMustNotBeEmpty   = errors.New("input must not be empty")
 )
-
-type resourceList[T any] struct {
-	Items []types.Resource[T] `json:"items" yaml:"items"`
-}
 
 // Decode implements types.DynamicDecoder.
 func (d *rawDrd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], error) {
@@ -166,14 +167,6 @@ func (d *rawDrd) decodeOne(v any) (types.Resource[types.APIVersionKind], error) 
 	return out, nil
 }
 
-func NewRawDynamicResourceDecoder(
-	apiServer types.APIServer,
-) types.DynamicDecoder[types.APIVersionKind] {
-	return &rawDrd{
-		apiServer: apiServer,
-	}
-}
-
 // raw decoding into map[any]any
 func decodeRaw(d decoder) ([]map[any]any, error) {
 	out := make([]map[any]any, 0)
@@ -194,10 +187,4 @@ func decodeRaw(d decoder) ([]map[any]any, error) {
 
 func fmtErrAtIndex(i int) error {
 	return fmt.Errorf("error is propably located at index %d", i)
-}
-
-// -- utility interface
-
-type decoder interface {
-	Decode(v any) error
 }

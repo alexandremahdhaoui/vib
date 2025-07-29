@@ -123,7 +123,7 @@ func ValidateKind(kind Kind) error {
 	if !LoweredKindRegex.MatchString(string(kind)) {
 		return flaterrors.Join(
 			ErrVal,
-			fmt.Errorf("couldn't validate Kind %q", kind),
+			fmt.Errorf("cannot validate Kind %q", kind),
 		)
 	}
 	return nil
@@ -177,22 +177,7 @@ func ValidateResourceName(s string) error {
 
 	return flaterrors.Join(
 		ErrVal,
-		fmt.Errorf("couldn't validate resource name %q", s),
-	)
-}
-
-func ValidateResourceNamePtr(ptr *string) error {
-	if ptr == nil {
-		return nil
-	}
-
-	if ResourceNameRegex.MatchString(*ptr) {
-		return nil
-	}
-
-	return flaterrors.Join(
-		ErrVal,
-		fmt.Errorf("couldn't validate resource name %q", *ptr),
+		fmt.Errorf("cannot validate resource name %q", s),
 	)
 }
 

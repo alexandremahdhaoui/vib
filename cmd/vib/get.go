@@ -30,37 +30,28 @@ const getDesc = `
 		Get resources of kind "KIND". Resources can be optionally filtered by
 		name.
 	Usage:
-		vib get KIND [name0] [name1] [flags]
+		vib get [flags] KIND [NAME0] [NAME1]
 	Args:
 		KIND: the kind of the resource.
-		name: name(s) of resources that must be returned. (optional)`
+		[NAME{X}]: name(s) of resources that must be returned. (optional)`
 
-func NewGet(storage types.Storage) Command {
+func NewGet(apiServer types.APIServer, storage types.Storage) Command {
 	out := &get{
+		apiServer:  apiServer,
 		apiVersion: "",
 		fs:         flag.NewFlagSet("get", flag.ExitOnError),
 		outputEnc:  "",
 		storage:    storage,
 	}
 
-	out.fs.StringVar(
-		(*string)(&out.apiVersion),
-		"apiVersion",
-		"",
-		"The APIVersion of the resource to get",
-	)
-
-	out.fs.StringVar(
-		(*string)(&out.outputEnc),
-		"o",
-		string(defaultOutputEncoding),
-		"The output encoding must be one of [json,yaml]; default is \"yaml\"",
-	)
+	NewAPIVersionFlag(out.fs, &out.apiVersion)
+	NewOutputEncodingFlag(out.fs, &out.outputEnc)
 
 	return out
 }
 
 type get struct {
+	apiServer  types.APIServer
 	apiVersion types.APIVersion
 	fs         *flag.FlagSet
 	outputEnc  string
@@ -81,7 +72,7 @@ func (g *get) Description() string {
 func (g *get) Run() error {
 	if g.fs.NArg() < 1 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"Get\" expects at least one argument"),
+			errors.New("[ERROR] \"Get\" expects at least ONE argument"),
 			errors.New(getDesc), //nolint staticcheck
 		)
 	}
@@ -91,12 +82,23 @@ func (g *get) Run() error {
 		return err
 	}
 
+	// -- get avk with specific apiVersion
+	kind := g.fs.Arg(0)
+	avk := types.NewAPIVersionKind(g.apiVersion, kind)
+
+	// The input apiVersion might be an empty string.
+	// This ensure the apiVersion is specified
+	res, err := g.apiServer.Get(avk)
+	if err != nil {
+		return err
+	}
+
 	nameFilter := make(map[string]struct{})
 	for i := 1; i < g.fs.NArg(); i++ {
 		nameFilter[g.fs.Arg(i)] = struct{}{}
 	}
 
-	list, err := List(g.storage, g.apiVersion, types.Kind(g.fs.Arg(0)), nameFilter)
+	list, err := List(g.storage, res.APIVersion, kind, nameFilter)
 	if err != nil {
 		return err
 	}

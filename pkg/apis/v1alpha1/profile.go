@@ -42,8 +42,9 @@ func (p ProfileSpec) Kind() types.Kind {
 func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 	refs := make(map[string]string, len(p.Refs))
 	for _, ref := range p.Refs {
-		// TODO: validate refs resource names?
-		// if err = api.ValidateResourceName(ref); err != nil {
+		if err := types.ValidateResourceName(ref); err != nil {
+			return "", err
+		}
 		refs[ref] = ""
 	}
 

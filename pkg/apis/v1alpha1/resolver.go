@@ -108,8 +108,7 @@ type (
 		Command string   `json:"command"`
 		Args    []string `json:"args,omitempty"`
 
-		// Stdin can be formatted
-		// WARN: What?
+		// WARN: What? Was my intention to pipe an input file?
 		Stdin string `json:"stdin,omitempty"`
 	}
 
@@ -127,7 +126,6 @@ type (
 )
 
 func (r ExecResolverSpec) Resolve(key, value string) (string, error) {
-	// TODO: implement me
 	cmd := exec.Command(r.Command, append(r.Args, key, value)...)
 	cmd.Stdin = strings.NewReader(r.Stdin)
 
@@ -136,6 +134,7 @@ func (r ExecResolverSpec) Resolve(key, value string) (string, error) {
 		return "", err
 	}
 
+	// TODO: implement me
 	panic("ResolveExec is not yet supported; use of keys & values is not implemented yet")
 	// return string(out), nil
 }
@@ -196,7 +195,7 @@ func validateResolverSpec(spec ResolverSpec) error {
 			return fmt.Errorf("ResolverSpec.Resolver must be set; got: nil")
 		}
 	default:
-		return fmt.Errorf("couldn't parse ResolverSpec.Type; got: %s", spec.Type)
+		return fmt.Errorf("cannot parse ResolverSpec.Type; got: %s", spec.Type)
 	}
 	return nil
 }

@@ -13,3 +13,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package main
+
+import "flag"
+
+func NewAPIVersionFlag(fs *flag.FlagSet, sVar *string) {
+	fs.StringVar(
+		sVar,
+		"apiVersion",
+		"",
+		"The APIVersion of the resource",
+	)
+}
+
+func NewOutputEncodingFlag(fs *flag.FlagSet, sVar *string) {
+	fs.StringVar(
+		sVar,
+		"o",
+		string(defaultOutputEncoding),
+		"The output encoding must be one of [json,yaml]; default is \"yaml\"",
+	)
+}

@@ -56,26 +56,33 @@ func main() {
 	// - INIT
 	// --------------------
 
+	// -- apiServer
 	apiServer := service.NewAPIServer()
 	v1alpha1.RegisterWithManager(apiServer)
 
-	// storage encoding
+	// -- dynamic resource decoder
+	drd := codecadapter.NewDynamicResourceDecoder(apiServer)
+
+	// -- storage encoding
 	storageCodec, err := codecadapter.New(defaultStorageEncoding)
 	if err != nil {
 		errAndExit(err)
 		return
 	}
 
+	// -- vib config dir
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		errAndExit(err)
 		return
 	}
+	vibConfigDir := filepath.Join(userConfigDir, "vib")
 
+	// -- storage
 	storage, err := storageadapter.NewFilesystem(
 		apiServer,
 		storageCodec,
-		filepath.Join(userConfigDir, "vib"),
+		vibConfigDir,
 	)
 	if err != nil {
 		errAndExit(err)
@@ -87,13 +94,13 @@ func main() {
 	// --------------------
 
 	cmds := []Command{
-		NewGet(storage),
-		NewRender(storage),
+		// NewApply(), // Read, UpdateOrCreate
 		NewCreate(apiServer, storage),
-		// apply(),
-		// grep(),
-		// del(),
-		// edit(),
+		NewDelete(apiServer, storage),
+		NewEdit(apiServer, drd, storage), // List, EditText, UpdateOrCreate
+		NewGet(apiServer, storage),
+		// NewGrep(TODO), // List, regexp.Match, Print
+		NewRender(apiServer, storage),
 	}
 
 	if len(os.Args) < 2 {

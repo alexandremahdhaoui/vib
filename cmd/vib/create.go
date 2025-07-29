@@ -28,12 +28,12 @@ import (
 
 const createDesc = `
 	Usage:
-		vib create KIND NAME [flags]
+		vib create [flags] KIND NAME 
 	Description:
 		Create a new empty resource with the provided name.
 	Args:
 		Kind: the kind of the resource.
-		resourceName: name(s) of resources that must be returned. (optional)`
+		NAME: name of the resource to create.`
 
 func NewCreate(
 	apiServer types.APIServer,
@@ -47,19 +47,8 @@ func NewCreate(
 		storage:    storage,
 	}
 
-	out.fs.StringVar(
-		(*string)(&out.apiVersion),
-		"apiVersion",
-		"",
-		"The APIVersion of the resource to create",
-	)
-
-	out.fs.StringVar(
-		(*string)(&out.outputEnc),
-		"o",
-		string(defaultOutputEncoding),
-		"The output encoding must be one of [json,yaml]; default is \"yaml\"",
-	)
+	NewAPIVersionFlag(out.fs, &out.apiVersion)
+	NewOutputEncodingFlag(out.fs, &out.outputEnc)
 
 	return out
 }
@@ -89,17 +78,16 @@ func (g *create) Run() error {
 		return err
 	}
 
-	if g.fs.NArg() < 1 {
+	if g.fs.NArg() < 2 {
 		return flaterrors.Join(
-			errors.New("[ERROR] \"Create\" expects at least two argument"),
+			errors.New("[ERROR] \"Create\" expects TWO argument"),
 			errors.New(createDesc), //nolint staticcheck
 		)
 	}
 
-	apiVersion := types.APIVersion(g.apiVersion)
-	kind := types.Kind(g.fs.Arg(0))
+	kind := g.fs.Arg(0)
 	name := g.fs.Arg(1)
-	avk := types.NewAPIVersionKind(apiVersion, kind)
+	avk := types.NewAPIVersionKind(g.apiVersion, kind)
 
 	res, err := g.apiServer.Get(avk)
 	if err != nil {
@@ -111,7 +99,12 @@ func (g *create) Run() error {
 		return err
 	}
 
-	slog.Info("successfully created resource", "name", res.Metadata.Name)
+	slog.Info(
+		"Successfully created resource",
+		"name", name,
+		"apiVersion", res.APIVersion,
+		"kind", res.Kind,
+	)
 
 	list, err := List(g.storage, res.APIVersion, types.Kind(g.fs.Arg(0)), map[string]struct{}{})
 	if err != nil {
