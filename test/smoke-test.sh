@@ -4,64 +4,100 @@ set -o errexit
 set -o pipefail
 
 VIB="go run ./cmd/vib"
+VIB_PATH="${HOME}/.config/vib"
+TMP_FILE="$(mktemp)"
 
-# -- Basic tests
-echo Run basic tests
-${VIB} create profile test0
-${VIB} create profile test1
-${VIB} create profile test2
+function __cleanup() {
+	echo "-- Cleaning up..."
+	rm "${TMP_FILE}"
+	${VIB} delete expressionset default-es
+	${VIB} delete -n nst-0 expressionset nst-0-es
+	${VIB} delete -n nst-1 profile nst-1-p
+}
+
+trap __cleanup EXIT
+
+echo "-- Starting smoke tests"
+
+# -- Simple tests
+
+echo "-- Running simple tests..."
+${VIB} create profile st-0
+${VIB} create profile st-1
+${VIB} create profile st-2
 ${VIB} get profile
-${VIB} delete profile test{0,1,2}
+${VIB} delete profile st-{0,1,2}
+echo "-- ✅ Simple tests pass"
 
 # -- Namespaced tests
-${VIB} create expressionset default-es
-${VIB} create -n test-0 expressionset test-0-es
-${VIB} create -n test-1 profile test-1-p
 
-cat <<EOF >TODO_DEFAULT_ES_FILE
+echo "Running namespaced tests..."
+${VIB} create expressionset default-es
+${VIB} create -n nst-0 expressionset nst-0-es
+${VIB} create -n nst-1 profile nst-1-p
+
+# TODO: add "vib apply" command instead of this hacky solution.
+cat <<EOF >"${VIB_PATH}/default/vib.alexandre.mahdhaoui.com_v1alpha1.expressionset.default-es.yaml"
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: ExpressionSet
 metadata:
   name: default-es
 spec:
   arbitraryKeys: null
-  keyValues: null
+  keyValues:
+    - key: value
   resolverRef:
-    name: function
+    name: plain
     namespace: vib-system
 EOF
 
-cat <<EOF >TODO_TEST_0_ES_FILE
+cat <<EOF >"${VIB_PATH}/nst-0/vib.alexandre.mahdhaoui.com_v1alpha1.expressionset.nst-0-es.yaml"
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: ExpressionSet
 metadata:
-  name: test-0-es
+  name: nst-0-es
+  namespace: nst-0
 spec:
   arbitraryKeys: null
-  keyValues: null
+  keyValues:
+    - key: value
   resolverRef:
     name: function
     namespace: vib-system
 EOF
 
-cat <<EOF >TODO_P_FILE
+cat <<EOF >"${VIB_PATH}/nst-1/vib.alexandre.mahdhaoui.com_v1alpha1.profile.nst-1-p.yaml"
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: Profile
 metadata:
-  name: test-1-p
-  namespace: test-1
+  name: nst-1-p
+  namespace: nst-1
 spec:
   refs:
-    - name: test-0-es
-	  namespace: test-0
-	- name: default-es
+    - name: default-es
+      namespace: default
+    - name: nst-0-es
+      namespace: nst-0
 EOF
 
-${VIB} render -n test-0 expressionset es
-${VIB} render -n test-1 profile p
+${VIB} render expressionset default-es 1>"${TMP_FILE}"
+${VIB} render -n nst-0 expressionset nst-0-es 1>>"${TMP_FILE}"
+${VIB} render -n nst-1 profile nst-1-p 1>>"${TMP_FILE}"
 
-${VIB} delete -n test-0 expressionset es
-${VIB} delete -n test-1 profile p
+diff "${TMP_FILE}" <(
+	cat <<EOF
+key
+function key() {
+value
+}
+key
+function key() {
+value
+}
+EOF
+)
+echo "-- ✅ Namespaced tests pass"
 
 # -- Success
-echo Smoke tests ran successfully
+
+echo "-- 🎉 Smoke tests ran successfully"

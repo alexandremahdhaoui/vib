@@ -29,7 +29,7 @@ type (
 	leaf struct {
 		// avkFactory function that instantiate the zero-valued struct
 		// corresponding to the AVK.
-		avkFactory types.AVKFactory
+		avkFactory types.AVKFunc
 	}
 )
 
@@ -61,7 +61,7 @@ func (a *apiServer) Get(avk types.APIVersionKind) (types.Resource[types.APIVersi
 }
 
 // Register implements types.APIServer.
-func (a *apiServer) Register(avkFactory []types.AVKFactory) {
+func (a *apiServer) Register(avkFactory []types.AVKFunc) {
 	for _, f := range avkFactory {
 		avk := f()
 		a.registeredAPIVersions = append(a.registeredAPIVersions, avk.APIVersion())

@@ -29,7 +29,7 @@ const (
 )
 
 func RegisterWithManager(mgr types.APIServer) {
-	mgr.Register([]types.AVKFactory{
+	mgr.Register([]types.AVKFunc{
 		func() types.APIVersionKind { return &ExpressionSpec{} },
 		func() types.APIVersionKind { return &ExpressionSetSpec{} },
 		func() types.APIVersionKind { return &ResolverSpec{} },

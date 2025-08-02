@@ -28,7 +28,7 @@ import (
 type (
 	APIServer interface {
 		// Registers a new APIVersion to the APIServer
-		Register(avkFactory []AVKFactory)
+		Register(avkFactory []AVKFunc)
 
 		// Get will return a zero valued instance of a Resource corresponding
 		// to the return AVK
@@ -92,13 +92,18 @@ type NamespacedName struct {
 }
 
 func NewNamespacedNameFromMetadata(metadata Metadata) NamespacedName {
+	namespace := metadata.Namespace
+	if namespace == "" {
+		namespace = DefaultNamespace
+	}
+
 	return NamespacedName{
 		Name:      metadata.Name,
-		Namespace: metadata.Namespace,
+		Namespace: namespace,
 	}
 }
 
-type AVKFactory func() APIVersionKind
+type AVKFunc func() APIVersionKind
 
 var (
 	KindRegex         = regexp.MustCompile(`^([A-Z][a-z]+)+$`)
@@ -208,7 +213,7 @@ func ValidateNamespacedName(namespacedName NamespacedName) error {
 	if !ResourceNameRegex.MatchString(namespacedName.Namespace) {
 		return flaterrors.Join(
 			ErrVal,
-			fmt.Errorf("cannot validate resource name %q", namespacedName.Namespace),
+			fmt.Errorf("cannot validate namespace %q", namespacedName.Namespace),
 		)
 	}
 
