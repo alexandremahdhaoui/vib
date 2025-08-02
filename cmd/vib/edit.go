@@ -47,11 +47,13 @@ func NewEdit(
 		apiVersion: "",
 		editor:     "",
 		fs:         flag.NewFlagSet("edit", flag.ExitOnError),
+		namespace:  "",
 		outputEnc:  "",
 		storage:    storage,
 	}
 
 	NewAPIVersionFlag(out.fs, &out.apiVersion)
+	NewNamespaceFlag(out.fs, &out.namespace)
 	NewOutputEncodingFlag(out.fs, &out.outputEnc)
 
 	out.fs.StringVar(
@@ -69,6 +71,7 @@ type edit struct {
 	apiVersion types.APIVersion
 	editor     string
 	fs         *flag.FlagSet
+	namespace  string
 	outputEnc  string
 	storage    types.Storage
 }
@@ -120,7 +123,7 @@ func (e *edit) Run() error {
 	}
 
 	// -- 1. List resources
-	list, err := List(e.storage, res.APIVersion, kind, nameFilter)
+	list, err := List(e.storage, res.APIVersion, kind, nameFilter, e.namespace)
 	if err != nil {
 		return err
 	}
@@ -155,7 +158,7 @@ func (e *edit) Run() error {
 		}
 
 		// -- 3. For each resource: Update
-		if err := e.storage.Update(name, res); err != nil {
+		if err := e.storage.Update(res); err != nil {
 			return err
 		}
 
@@ -168,7 +171,7 @@ func (e *edit) Run() error {
 	}
 
 	// -- 4. List resources
-	out, err := List(e.storage, res.APIVersion, kind, nameFilter)
+	out, err := List(e.storage, res.APIVersion, kind, nameFilter, e.namespace)
 	if err != nil {
 		return err
 	}

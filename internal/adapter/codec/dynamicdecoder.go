@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/alexandremahdhaoui/vib/internal/types"
@@ -114,19 +113,19 @@ func (d *rawDrd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind
 				// TODO: handle list items
 				list, ok := v.([]any)
 				if !ok {
-					return nil, flaterrors.Join(errors.New("TODO"), fmtErrAtIndex(i))
+					return nil, flaterrors.Join(errors.New("TODO"), types.ErrAtIndex(i))
 				}
 				for _, raw := range list {
 					item, err := d.decodeOne(raw)
 					if err != nil {
-						return nil, flaterrors.Join(err, fmtErrAtIndex(i))
+						return nil, flaterrors.Join(err, types.ErrAtIndex(i))
 					}
 					out = append(out, item)
 				}
 			} else {
 				item, err := d.decodeOne(obj)
 				if err != nil {
-					return nil, flaterrors.Join(err, fmtErrAtIndex(i))
+					return nil, flaterrors.Join(err, types.ErrAtIndex(i))
 				}
 				out = append(out, item)
 			}
@@ -177,14 +176,10 @@ func decodeRaw(d decoder) ([]map[any]any, error) {
 		if err := d.Decode(&v); errors.Is(err, io.EOF) {
 			done = true // End of file/stream
 		} else if err != nil {
-			return nil, flaterrors.Join(err, fmtErrAtIndex(i))
+			return nil, flaterrors.Join(err, types.ErrAtIndex(i))
 		}
 		i++
 		out = append(out, v)
 	}
 	return out, nil
-}
-
-func fmtErrAtIndex(i int) error {
-	return fmt.Errorf("error is propably located at index %d", i)
 }

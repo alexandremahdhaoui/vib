@@ -30,7 +30,7 @@ type ExpressionSetSpec struct {
 	KeyValues []map[string]string `json:"keyValues"`
 
 	// ResolverRef
-	ResolverRef string `json:"resolverRef"`
+	ResolverRef types.NamespacedName `json:"resolverRef"`
 }
 
 // APIVersion implements types.DefinedResource.
@@ -45,11 +45,15 @@ func (e ExpressionSetSpec) Kind() types.Kind {
 
 // Render implements types.Renderer.
 func (e *ExpressionSetSpec) Render(storage types.Storage) (string, error) {
-	if err := types.ValidateResourceName(e.ResolverRef); err != nil {
+	if err := types.ValidateNamespacedName(e.ResolverRef); err != nil {
 		return "", err
 	}
 
-	resolver, err := types.GetTypedResourceFromStorage[ResolverSpec](storage, e.ResolverRef)
+	resolver, err := types.GetTypedResourceFromStorage(
+		storage,
+		e.ResolverRef,
+		&ResolverSpec{},
+	)
 	if err != nil {
 		return "", err
 	}

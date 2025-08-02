@@ -29,7 +29,7 @@ import (
 func TestResolverSpec_Render(t *testing.T) {
 	for _, tc := range []struct {
 		Name       string
-		Resource   types.Resource[v1alpha1.Resolver]
+		Resource   types.Resource[types.APIVersionKind]
 		Key, Value string
 		Want       string
 	}{
@@ -43,7 +43,7 @@ func TestResolverSpec_Render(t *testing.T) {
 
 		{
 			Name:     "AliasResolver",
-			Resource: Must(t, v1alpha1.NewAliasResolver),
+			Resource: v1alpha1.NewAliasResolver(),
 			Key:      "test",
 			Value:    "echo 0",
 			Want:     "alias test='echo 0'",
@@ -51,7 +51,7 @@ func TestResolverSpec_Render(t *testing.T) {
 
 		{
 			Name:     "FunctionResolver",
-			Resource: Must(t, v1alpha1.NewFunctionResolver),
+			Resource: v1alpha1.NewFunctionResolver(),
 			Key:      "test1",
 			Value:    "echo $1",
 			Want:     "test1() { echo $1 ; }",
@@ -59,7 +59,7 @@ func TestResolverSpec_Render(t *testing.T) {
 
 		{
 			Name:     "EnvironmentResolver",
-			Resource: Must(t, v1alpha1.NewEnvironmentResolver),
+			Resource: v1alpha1.NewEnvironmentResolver(),
 			Key:      "TEST",
 			Value:    "2",
 			Want:     "TEST=\"2\"",
@@ -67,7 +67,7 @@ func TestResolverSpec_Render(t *testing.T) {
 
 		{
 			Name:     "ExportedEnvironmentResolver",
-			Resource: Must(t, v1alpha1.NewExportedEnvironmentResolver),
+			Resource: v1alpha1.NewExportedEnvironmentResolver(),
 			Key:      "TEST",
 			Value:    "3",
 			Want:     "export TEST=\"3\"",

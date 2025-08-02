@@ -43,11 +43,13 @@ func NewCreate(
 		apiServer:  apiServer,
 		apiVersion: "",
 		fs:         flag.NewFlagSet("create", flag.ExitOnError),
+		namespace:  "",
 		outputEnc:  "",
 		storage:    storage,
 	}
 
 	NewAPIVersionFlag(out.fs, &out.apiVersion)
+	NewNamespaceFlag(out.fs, &out.namespace)
 	NewOutputEncodingFlag(out.fs, &out.outputEnc)
 
 	return out
@@ -57,6 +59,7 @@ type create struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
 	fs         *flag.FlagSet
+	namespace  string
 	outputEnc  string
 	storage    types.Storage
 }
@@ -95,6 +98,7 @@ func (g *create) Run() error {
 	}
 
 	res.Metadata.Name = name
+	res.Metadata.Namespace = g.namespace
 	if err := g.storage.Create(res); err != nil {
 		return err
 	}
@@ -107,7 +111,7 @@ func (g *create) Run() error {
 	)
 
 	nameFilter := map[string]struct{}{name: {}}
-	list, err := List(g.storage, res.APIVersion, types.Kind(g.fs.Arg(0)), nameFilter)
+	list, err := List(g.storage, res.APIVersion, types.Kind(g.fs.Arg(0)), nameFilter, g.namespace)
 	if err != nil {
 		return err
 	}

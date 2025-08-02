@@ -19,35 +19,19 @@ package types
 import (
 	"errors"
 	"fmt"
-
-	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
 )
 
 var (
 	ErrType     = errors.New("ERRTYPE: unsupported type")
 	ErrFile     = errors.New("ERRFILE: unsupported file extension")
 	ErrEncoding = errors.New("ERRENC: unsupported encoding")
-	ErrExist    = errors.New("ERREXIST: resource already exist")
+	ErrExists   = errors.New("ERREXISTS: resource already exist")
 	ErrNotFound = errors.New("ERRNOTFOUND: resource cannot be found")
 	ErrArgs     = errors.New("ERRARGS: unexpected argument")
 	ErrVal      = errors.New("ERRVAL: input cannot be validated")
 	ErrRef      = errors.New("ERRREF: unexpected reference")
 )
 
-func NewKindErr(kind Kind) error {
-	return flaterrors.Join(ErrType, fmt.Errorf("kind %q is not supported", kind))
-}
-
-func NewAPIVersionErr(apiVersion APIVersion, kind Kind) error {
-	return flaterrors.Join(
-		ErrType,
-		fmt.Errorf("APIVersion %q for Kind %q is not supported", apiVersion, kind),
-	)
-}
-
-func NewRefErr(reference string, kind Kind) error {
-	return flaterrors.Join(
-		ErrRef,
-		fmt.Errorf("cannot resolve reference %q to Kind %q", reference, kind),
-	)
+func ErrAtIndex(i int) error {
+	return fmt.Errorf("error is propably located at index %d", i)
 }

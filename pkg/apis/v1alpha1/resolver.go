@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -29,7 +28,9 @@ import (
 )
 
 var (
-	_ Resolver = &ResolverSpec{}
+	_ types.APIVersionKind = &ResolverSpec{}
+	_ Resolver             = &ResolverSpec{}
+
 	_ Resolver = &ExecResolverSpec{}
 	_ Resolver = &FmtResolverSpec{}
 	_ Resolver = &GotemplateResolverSpec{}
@@ -126,17 +127,18 @@ type (
 )
 
 func (r ExecResolverSpec) Resolve(key, value string) (string, error) {
+	// TODO: implement me
+	panic("ResolveExec is not yet supported")
+
 	cmd := exec.Command(r.Command, append(r.Args, key, value)...)
 	cmd.Stdin = strings.NewReader(r.Stdin)
 
-	_, err := cmd.Output()
+	out, err := cmd.Output()
 	if err != nil {
 		return "", err
 	}
 
-	// TODO: implement me
-	panic("ResolveExec is not yet supported; use of keys & values is not implemented yet")
-	// return string(out), nil
+	return string(out), nil
 }
 
 func (r FmtResolverSpec) Resolve(key string, value string) (string, error) {
@@ -162,15 +164,18 @@ func (r PlainResolverSpec) Resolve(key string, value string) (string, error) {
 	return key, nil
 }
 
-func NewResolver(name string, spec ResolverSpec) (types.Resource[Resolver], error) {
+func NewAVKResolver(
+	name, namespace string,
+	spec ResolverSpec,
+) (types.Resource[types.APIVersionKind], error) {
 	if err := validateResolverSpec(spec); err != nil {
-		return types.Resource[Resolver]{}, err
+		return types.Resource[types.APIVersionKind]{}, err
 	}
 
-	return types.Resource[Resolver]{
+	return types.Resource[types.APIVersionKind]{
 			APIVersion: APIVersion,
 			Kind:       ResolverKind,
-			Metadata:   types.NewMetadata(name),
+			Metadata:   types.NewMetadata(name, namespace),
 			Spec:       spec,
 		},
 		nil
@@ -206,35 +211,30 @@ func validateResolverSpec(spec ResolverSpec) error {
 // This list of resolver is used to populate the ~/.config/vib/resources directory on init.
 //----------------------------------------------------------------------------------------------------------------------
 
-func GetDefaultResolver() ([]types.Resource[Resolver], error) {
-	results := make([]types.Resource[Resolver], 0)
-	for _, f := range []func() (types.Resource[Resolver], error){
-		NewPlainResolver,
-		NewFunctionResolver,
-		NewAliasResolver,
-		NewEnvironmentResolver,
-		NewExportedEnvironmentResolver,
-	} {
-		resource, err := f()
-		if err != nil {
-			return nil, flaterrors.Join(err, errors.New("fetching default resolvers"))
-		}
-		results = append(results, resource)
+func DefaultAVKResolver() []types.Resource[types.APIVersionKind] {
+	return []types.Resource[types.APIVersionKind]{
+		NewPlainResolver(),
+		NewFunctionResolver(),
+		NewAliasResolver(),
+		NewEnvironmentResolver(),
+		NewExportedEnvironmentResolver(),
 	}
-	return results, nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // PlainResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewPlainResolver() (types.Resource[Resolver], error) {
-	return NewResolver(
-		PlainResolverRef,
-		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
-			Type:  PlainResolverRef,
-			Plain: util.Ptr(PlainResolverSpec(true)),
-		},
+func NewPlainResolver() types.Resource[types.APIVersionKind] {
+	return util.Must(
+		NewAVKResolver(
+			PlainResolverRef,
+			types.VibSystemNamespace,
+			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
+				Type:  PlainResolverRef,
+				Plain: util.Ptr(PlainResolverSpec(true)),
+			},
+		),
 	)
 }
 
@@ -242,16 +242,19 @@ func NewPlainResolver() (types.Resource[Resolver], error) {
 // FunctionResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewFunctionResolver() (types.Resource[Resolver], error) {
-	return NewResolver(
-		FunctionResolverRef,
-		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
-			Type: FmtResolverType,
-			Fmt: &FmtResolverSpec{
-				Template:     "%s() {\n%s\n}",
-				FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+func NewFunctionResolver() types.Resource[types.APIVersionKind] {
+	return util.Must(
+		NewAVKResolver(
+			FunctionResolverRef,
+			types.VibSystemNamespace,
+			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
+				Type: FmtResolverType,
+				Fmt: &FmtResolverSpec{
+					Template:     "function %s() {\n%s\n}",
+					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+				},
 			},
-		},
+		),
 	)
 }
 
@@ -259,16 +262,19 @@ func NewFunctionResolver() (types.Resource[Resolver], error) {
 // AliasResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewAliasResolver() (types.Resource[Resolver], error) {
-	return NewResolver(
-		AliasResolverRef,
-		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
-			Type: FmtResolverType,
-			Fmt: &FmtResolverSpec{
-				Template:     "alias %s='%s'",
-				FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+func NewAliasResolver() types.Resource[types.APIVersionKind] {
+	return util.Must(
+		NewAVKResolver(
+			AliasResolverRef,
+			types.VibSystemNamespace,
+			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
+				Type: FmtResolverType,
+				Fmt: &FmtResolverSpec{
+					Template:     "alias %s='%s'",
+					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+				},
 			},
-		},
+		),
 	)
 }
 
@@ -276,16 +282,19 @@ func NewAliasResolver() (types.Resource[Resolver], error) {
 // EnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewEnvironmentResolver() (types.Resource[Resolver], error) {
-	return NewResolver(
-		EnvironmentResolverRef,
-		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
-			Type: FmtResolverType,
-			Fmt: &FmtResolverSpec{
-				Template:     "%s=%q",
-				FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+func NewEnvironmentResolver() types.Resource[types.APIVersionKind] {
+	return util.Must(
+		NewAVKResolver(
+			EnvironmentResolverRef,
+			types.VibSystemNamespace,
+			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
+				Type: FmtResolverType,
+				Fmt: &FmtResolverSpec{
+					Template:     "%s=%q",
+					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+				},
 			},
-		},
+		),
 	)
 }
 
@@ -293,15 +302,18 @@ func NewEnvironmentResolver() (types.Resource[Resolver], error) {
 // ExportedEnvironmentResolver
 //----------------------------------------------------------------------------------------------------------------------
 
-func NewExportedEnvironmentResolver() (types.Resource[Resolver], error) {
-	return NewResolver(
-		ExportedEnvironmentResolverRef,
-		ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
-			Type: FmtResolverType,
-			Fmt: &FmtResolverSpec{
-				Template:     "export %s=%q",
-				FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+func NewExportedEnvironmentResolver() types.Resource[types.APIVersionKind] {
+	return util.Must(
+		NewAVKResolver(
+			ExportedEnvironmentResolverRef,
+			types.VibSystemNamespace,
+			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
+				Type: FmtResolverType,
+				Fmt: &FmtResolverSpec{
+					Template:     "export %s=%q",
+					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+				},
 			},
-		},
+		),
 	)
 }

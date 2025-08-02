@@ -5,10 +5,14 @@ TODOs:
     - Add usage and getting started section
     - Add more example
   code:
+    Validate:
+      - Metadata (resource name, namespace)
+      - APIVersion
+      - Kind
     Resources:
       - Config
-      - Namespaces e.g. allow configuring multiple directories
-      - DocConfig: |
+      - Namespaces: e.g. allow configuring multiple directories
+      - Documentation: |
           DocConfig can be used to set up a new directory containing
           notes or docs.
     Commands:

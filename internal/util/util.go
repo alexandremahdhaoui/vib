@@ -115,3 +115,10 @@ func EditFile(editor string, b []byte, encoding types.Encoding) ([]byte, error) 
 
 	return out, nil
 }
+
+func Must[T any](out T, err error) T {
+	if err != nil {
+		panic(err.Error())
+	}
+	return out
+}

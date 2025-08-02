@@ -25,7 +25,7 @@ type ProfileSpec struct {
 	// Refs is a list of reference to Expression or ExpressionSet
 	// TODO: ExpressionRefs must be validated to ensure no duplication.
 	// Name duplication would yield unexpected behavior
-	Refs []string `json:"refs"`
+	Refs []types.NamespacedName `json:"refs"`
 }
 
 // APIVersion implements types.DefinedResource.
@@ -40,22 +40,35 @@ func (p ProfileSpec) Kind() types.Kind {
 
 // Render implements types.Renderer.
 func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
-	refs := make(map[string]string, len(p.Refs))
+	refs := make(map[types.NamespacedName]string, len(p.Refs))
+	namespaces := make(map[string]struct{})
 	for _, ref := range p.Refs {
-		if err := types.ValidateResourceName(ref); err != nil {
+		if err := types.ValidateNamespacedName(ref); err != nil {
 			return "", err
 		}
+
 		refs[ref] = ""
+		namespaces[ref.Namespace] = struct{}{}
 	}
 
 	// -- Expressions
-	eList, err := types.ListTypedResourceFromStorage[ExpressionSpec](storage)
-	if err != nil {
-		return "", err
+	eList := make([]types.Resource[*ExpressionSpec], 0)
+	for ns := range namespaces {
+		l, err := types.ListTypedResourceFromStorage(
+			storage,
+			ns,
+			&ExpressionSpec{},
+		)
+		if err != nil {
+			return "", err
+		}
+
+		eList = append(eList, l...)
 	}
 
 	for _, e := range eList {
-		if _, ok := refs[e.Metadata.Name]; !ok {
+		nsName := types.NewNamespacedNameFromMetadata(e.Metadata)
+		if _, ok := refs[nsName]; !ok {
 			continue
 		}
 
@@ -64,17 +77,27 @@ func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 			return "", err
 		}
 
-		refs[e.Metadata.Name] = s
+		refs[nsName] = s
 	}
 
 	// -- Expression sets
-	esList, err := types.ListTypedResourceFromStorage[ExpressionSetSpec](storage)
-	if err != nil {
-		return "", err
+	esList := make([]types.Resource[*ExpressionSetSpec], 0)
+	for ns := range namespaces {
+		l, err := types.ListTypedResourceFromStorage(
+			storage,
+			ns,
+			&ExpressionSetSpec{},
+		)
+		if err != nil {
+			return "", err
+		}
+
+		esList = append(esList, l...)
 	}
 
 	for _, es := range esList {
-		if _, ok := refs[es.Metadata.Name]; !ok {
+		nsName := types.NewNamespacedNameFromMetadata(es.Metadata)
+		if _, ok := refs[nsName]; !ok {
 			continue
 		}
 
@@ -83,7 +106,7 @@ func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 			return "", err
 		}
 
-		refs[es.Metadata.Name] = s
+		refs[nsName] = s
 	}
 
 	buf := ""

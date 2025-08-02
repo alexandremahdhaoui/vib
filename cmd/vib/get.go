@@ -40,11 +40,13 @@ func NewGet(apiServer types.APIServer, storage types.Storage) Command {
 		apiServer:  apiServer,
 		apiVersion: "",
 		fs:         flag.NewFlagSet("get", flag.ExitOnError),
+		namespace:  "",
 		outputEnc:  "",
 		storage:    storage,
 	}
 
 	NewAPIVersionFlag(out.fs, &out.apiVersion)
+	NewNamespaceFlag(out.fs, &out.namespace)
 	NewOutputEncodingFlag(out.fs, &out.outputEnc)
 
 	return out
@@ -54,6 +56,7 @@ type get struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
 	fs         *flag.FlagSet
+	namespace  string
 	outputEnc  string
 	storage    types.Storage
 }
@@ -98,7 +101,7 @@ func (g *get) Run() error {
 		nameFilter[g.fs.Arg(i)] = struct{}{}
 	}
 
-	list, err := List(g.storage, res.APIVersion, kind, nameFilter)
+	list, err := List(g.storage, res.APIVersion, kind, nameFilter, g.namespace)
 	if err != nil {
 		return err
 	}

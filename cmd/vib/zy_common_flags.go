@@ -15,7 +15,11 @@ limitations under the License.
 */
 package main
 
-import "flag"
+import (
+	"flag"
+
+	"github.com/alexandremahdhaoui/vib/internal/types"
+)
 
 func NewAPIVersionFlag(fs *flag.FlagSet, sVar *string) {
 	fs.StringVar(
@@ -23,6 +27,15 @@ func NewAPIVersionFlag(fs *flag.FlagSet, sVar *string) {
 		"apiVersion",
 		"",
 		"The APIVersion of the resource",
+	)
+}
+
+func NewNamespaceFlag(fs *flag.FlagSet, sVar *string) {
+	fs.StringVar(
+		sVar,
+		"n",
+		types.DefaultNamespace,
+		"The namespace of the resource",
 	)
 }
 

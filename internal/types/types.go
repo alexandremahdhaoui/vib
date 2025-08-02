@@ -17,7 +17,6 @@ limitations under the License.
 package types
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -62,34 +61,54 @@ type (
 
 	Storage interface {
 		// List resources.
-		List(avk APIVersionKind) ([]Resource[APIVersionKind], error)
+		List(avk APIVersionKind, namespace string) ([]Resource[APIVersionKind], error)
 
 		// Get a resource by name. It returns types.ErrNotFound if the resource
 		// cannot be found.
-		Get(avk APIVersionKind, name string) (Resource[APIVersionKind], error)
+		Get(
+			avk APIVersionKind,
+			namespacedName NamespacedName,
+		) (Resource[APIVersionKind], error)
 
 		// Creates a resource if it does not exist in the store.
 		Create(Resource[APIVersionKind]) error
 
 		// Update returns types.ErrNotFound if named resource cannot be found
-		Update(oldName string, v Resource[APIVersionKind]) error
+		Update(v Resource[APIVersionKind]) error
 
 		// Delete a resource in the store. Delete is idempotent.
-		Delete(avk APIVersionKind, name string) error
+		Delete(avk APIVersionKind, namespacedName NamespacedName) error
 	}
 )
+
+const (
+	DefaultNamespace   = "default"
+	VibSystemNamespace = "vib-system"
+)
+
+type NamespacedName struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
+func NewNamespacedNameFromMetadata(metadata Metadata) NamespacedName {
+	return NamespacedName{
+		Name:      metadata.Name,
+		Namespace: metadata.Namespace,
+	}
+}
 
 type AVKFactory func() APIVersionKind
 
 var (
-	KindRegex         = regexp.MustCompile(`([A-Z][a-z]+)+`)
-	LoweredKindRegex  = regexp.MustCompile(`[a-z]+`)
-	ResourceNameRegex = regexp.MustCompile(`[a-z][a-z0-9]+(\-[a-z0-9]+)*`)
+	KindRegex         = regexp.MustCompile(`^([A-Z][a-z]+)+$`)
+	LoweredKindRegex  = regexp.MustCompile(`^[a-z]+$`)
+	ResourceNameRegex = regexp.MustCompile(`^[a-z][a-z0-9]+(\-[a-z0-9]+)*$`)
 	APIVersionRegex   = regexp.MustCompile(
-		`([a-z0-9]+([a-z0-9]+)*)+(\.([a-z0-9]+([a-z0-9]+)*)+)*(\.[a-z]+)+/v[0-9]+[a-z0-9]*`,
+		`^([a-z0-9]+([a-z0-9]+)*)+(\.([a-z0-9]+([a-z0-9]+)*)+)*(\.[a-z]+)+/v[0-9]+[a-z0-9]*$`,
 	)
 	APIVersionAndKindRegex = regexp.MustCompile(
-		fmt.Sprintf("%s/%s", APIVersionRegex.String(), LoweredKindRegex.String()),
+		`^([a-z0-9]+([a-z0-9]+)*)+(\.([a-z0-9]+([a-z0-9]+)*)+)*(\.[a-z]+)+/v[0-9]+[a-z0-9]*/([A-Z][a-z]+)+$`,
 	)
 )
 
@@ -133,10 +152,14 @@ type Metadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace,omitempty"`
 }
 
-func NewMetadata(name string) Metadata {
-	return Metadata{Name: name} //nolint:exhaustruct,exhaustivestruct
+func NewMetadata(name, namespace string) Metadata {
+	return Metadata{
+		Name:      name,
+		Namespace: name,
+	} //nolint:exhaustruct,exhaustivestruct
 }
 
 type Resource[T any] struct {
@@ -150,6 +173,7 @@ func NewResource[T any](
 	apiVersion APIVersion,
 	kind Kind,
 	name string,
+	namespace string,
 	spec T,
 ) (Resource[T], error) {
 	if err := ValidateAPIVersion(apiVersion); err != nil {
@@ -161,13 +185,34 @@ func NewResource[T any](
 	if err := ValidateResourceName(name); err != nil {
 		return Resource[T]{}, err
 	}
+	if err := ValidateResourceName(namespace); err != nil {
+		return Resource[T]{}, err
+	}
 
 	return Resource[T]{
 		APIVersion: apiVersion,
 		Kind:       kind,
-		Metadata:   NewMetadata(name),
+		Metadata:   NewMetadata(name, namespace),
 		Spec:       spec,
 	}, nil
+}
+
+func ValidateNamespacedName(namespacedName NamespacedName) error {
+	if !ResourceNameRegex.MatchString(namespacedName.Name) {
+		return flaterrors.Join(
+			ErrVal,
+			fmt.Errorf("cannot validate resource name %q", namespacedName.Name),
+		)
+	}
+
+	if !ResourceNameRegex.MatchString(namespacedName.Namespace) {
+		return flaterrors.Join(
+			ErrVal,
+			fmt.Errorf("cannot validate resource name %q", namespacedName.Namespace),
+		)
+	}
+
+	return nil
 }
 
 func ValidateResourceName(s string) error {
@@ -212,10 +257,10 @@ func NewAVKFromResource[T any](res Resource[T]) APIVersionKind {
 
 func GetTypedResourceFromStorage[T APIVersionKind](
 	storage Storage,
-	name string,
+	namespacedName NamespacedName,
+	v T,
 ) (Resource[T], error) {
-	v := *new(T)
-	res, err := storage.Get(v, name)
+	res, err := storage.Get(v, namespacedName)
 	if err != nil {
 		return Resource[T]{}, err
 	}
@@ -229,7 +274,7 @@ func GetTypedResourceFromStorage[T APIVersionKind](
 	var ok bool
 	out.Spec, ok = res.Spec.(T)
 	if !ok {
-		return out, errors.New("invalid type")
+		return Resource[T]{}, ErrType
 	}
 
 	return out, nil
@@ -237,15 +282,16 @@ func GetTypedResourceFromStorage[T APIVersionKind](
 
 func ListTypedResourceFromStorage[T APIVersionKind](
 	storage Storage,
+	namespace string,
+	v T,
 ) ([]Resource[T], error) {
-	v := *new(T)
-	list, err := storage.List(v)
+	list, err := storage.List(v, namespace)
 	if err != nil {
 		return nil, err
 	}
 
 	out := make([]Resource[T], 0, len(list))
-	for _, res := range list {
+	for i, res := range list {
 		typed := Resource[T]{
 			APIVersion: res.APIVersion,
 			Kind:       res.Kind,
@@ -255,7 +301,7 @@ func ListTypedResourceFromStorage[T APIVersionKind](
 		var ok bool
 		typed.Spec, ok = res.Spec.(T)
 		if !ok {
-			return nil, errors.New("invalid type")
+			return nil, flaterrors.Join(ErrType, ErrAtIndex(i))
 		}
 
 		out = append(out, typed)

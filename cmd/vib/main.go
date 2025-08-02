@@ -16,6 +16,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -86,6 +87,14 @@ func main() {
 		vibConfigDir,
 	)
 	if err != nil {
+		logErrAndExit(err)
+		return
+	}
+
+	// --------------------
+	// - INIT VIB SYSTEM
+	// --------------------
+	if err := initVibSystemNamespace(storage); err != nil {
 		logErrAndExit(err)
 		return
 	}
@@ -197,8 +206,10 @@ func List(
 	apiVersion types.APIVersion,
 	kind types.Kind,
 	nameFilter map[string]struct{},
+	namespace string,
 ) ([]types.Resource[types.APIVersionKind], error) {
-	list, err := storage.List(types.NewAPIVersionKind(apiVersion, kind))
+	avk := types.NewAPIVersionKind(apiVersion, kind)
+	list, err := storage.List(avk, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -252,4 +263,21 @@ func fmtSet(set map[string]struct{}) string {
 		out = fmt.Sprintf("%s, %s", out, s)
 	}
 	return fmt.Sprintf("[%s]", out[2:])
+}
+
+// initVibSystemNamespace initialize the vib system namespace.
+func initVibSystemNamespace(storage types.Storage) error {
+	for _, resolver := range v1alpha1.DefaultAVKResolver() {
+		fixedResolver, ok := any(resolver).(types.Resource[types.APIVersionKind])
+		if !ok {
+			panic("Please fix your commit before submitting a PR")
+		}
+
+		fixedResolver.Metadata.Namespace = types.VibSystemNamespace
+		if err := storage.Create(fixedResolver); err != nil && !errors.Is(err, types.ErrExists) {
+			return err
+		}
+	}
+
+	return nil
 }

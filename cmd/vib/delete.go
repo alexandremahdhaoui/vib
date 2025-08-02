@@ -41,10 +41,12 @@ func NewDelete(
 		apiServer:  apiServer,
 		apiVersion: "",
 		fs:         flag.NewFlagSet("delete", flag.ExitOnError),
+		namespace:  "",
 		storage:    storage,
 	}
 
 	NewAPIVersionFlag(out.fs, &out.apiVersion)
+	NewNamespaceFlag(out.fs, &out.namespace)
 
 	return out
 }
@@ -53,6 +55,7 @@ type del struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
 	fs         *flag.FlagSet
+	namespace  string
 	storage    types.Storage
 }
 
@@ -91,7 +94,12 @@ func (d *del) Run() error {
 
 	specificAvk := types.NewAVKFromResource(res)
 	for _, name := range names {
-		if err := d.storage.Delete(specificAvk, name); err != nil {
+		nsName := types.NamespacedName{
+			Name:      name,
+			Namespace: d.namespace,
+		}
+
+		if err := d.storage.Delete(specificAvk, nsName); err != nil {
 			return err
 		}
 

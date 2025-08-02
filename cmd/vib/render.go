@@ -38,10 +38,12 @@ func NewRender(apiServer types.APIServer, storage types.Storage) Command {
 		apiServer:  apiServer,
 		apiVersion: "",
 		fs:         flag.NewFlagSet("render", flag.ExitOnError),
+		namespace:  "",
 		storage:    storage,
 	}
 
 	NewAPIVersionFlag(out.fs, &out.apiVersion)
+	NewNamespaceFlag(out.fs, &out.namespace)
 
 	return out
 }
@@ -50,6 +52,7 @@ type render struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
 	fs         *flag.FlagSet
+	namespace  string
 	storage    types.Storage
 }
 
@@ -75,17 +78,22 @@ func (r *render) Run() error {
 	// -- get avk with specific apiVersion
 	kind := r.fs.Arg(0)
 	name := r.fs.Arg(1)
-	avk := types.NewAPIVersionKind(r.apiVersion, kind)
 
 	// The input apiVersion might be an empty string.
 	// This ensure the apiVersion is specified
+	avk := types.NewAPIVersionKind(r.apiVersion, kind)
 	res, err := r.apiServer.Get(avk)
 	if err != nil {
 		return err
 	}
 
 	specificAvk := types.NewAVKFromResource(res)
-	resource, err := r.storage.Get(specificAvk, name)
+	nsName := types.NamespacedName{
+		Name:      name,
+		Namespace: r.namespace,
+	}
+
+	resource, err := r.storage.Get(specificAvk, nsName)
 	if err != nil {
 		return err
 	}
