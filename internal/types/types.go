@@ -17,9 +17,7 @@ limitations under the License.
 package types
 
 import (
-	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
@@ -79,6 +77,10 @@ type (
 		// Delete a resource in the store. Delete is idempotent.
 		Delete(avk APIVersionKind, namespacedName NamespacedName) error
 	}
+
+	Validator interface {
+		Validate() error
+	}
 )
 
 const (
@@ -105,18 +107,6 @@ func NewNamespacedNameFromMetadata(metadata Metadata) NamespacedName {
 
 type AVKFunc func() APIVersionKind
 
-var (
-	KindRegex         = regexp.MustCompile(`^([A-Z][a-z]+)+$`)
-	LoweredKindRegex  = regexp.MustCompile(`^[a-z]+$`)
-	ResourceNameRegex = regexp.MustCompile(`^[a-z][a-z0-9]+(\-[a-z0-9]+)*$`)
-	APIVersionRegex   = regexp.MustCompile(
-		`^([a-z0-9]+([a-z0-9]+)*)+(\.([a-z0-9]+([a-z0-9]+)*)+)*(\.[a-z]+)+/v[0-9]+[a-z0-9]*$`,
-	)
-	APIVersionAndKindRegex = regexp.MustCompile(
-		`^([a-z0-9]+([a-z0-9]+)*)+(\.([a-z0-9]+([a-z0-9]+)*)+)*(\.[a-z]+)+/v[0-9]+[a-z0-9]*/([A-Z][a-z]+)+$`,
-	)
-)
-
 type Encoding string
 
 const (
@@ -131,26 +121,6 @@ type (
 
 func NewAPIVersion(s string) APIVersion {
 	return APIVersion(strings.ToLower(s))
-}
-
-func ValidateAPIVersion(apiVersion APIVersion) error {
-	if !APIVersionRegex.MatchString(string(apiVersion)) {
-		return flaterrors.Join(
-			ErrVal,
-			fmt.Errorf("invalid APIVersion %q", apiVersion),
-		)
-	}
-	return nil
-}
-
-func ValidateKind(kind Kind) error {
-	if !LoweredKindRegex.MatchString(string(kind)) {
-		return flaterrors.Join(
-			ErrVal,
-			fmt.Errorf("cannot validate Kind %q", kind),
-		)
-	}
-	return nil
 }
 
 type Metadata struct {
@@ -172,63 +142,6 @@ type Resource[T any] struct {
 	Kind       Kind       `json:"kind"`
 	Metadata   Metadata   `json:"metadata"`
 	Spec       T          `json:"spec"`
-}
-
-func NewResource[T any](
-	apiVersion APIVersion,
-	kind Kind,
-	name string,
-	namespace string,
-	spec T,
-) (Resource[T], error) {
-	if err := ValidateAPIVersion(apiVersion); err != nil {
-		return Resource[T]{}, err
-	}
-	if err := ValidateKind(kind); err != nil {
-		return Resource[T]{}, err
-	}
-	if err := ValidateResourceName(name); err != nil {
-		return Resource[T]{}, err
-	}
-	if err := ValidateResourceName(namespace); err != nil {
-		return Resource[T]{}, err
-	}
-
-	return Resource[T]{
-		APIVersion: apiVersion,
-		Kind:       kind,
-		Metadata:   NewMetadata(name, namespace),
-		Spec:       spec,
-	}, nil
-}
-
-func ValidateNamespacedName(namespacedName NamespacedName) error {
-	if !ResourceNameRegex.MatchString(namespacedName.Name) {
-		return flaterrors.Join(
-			ErrVal,
-			fmt.Errorf("cannot validate resource name %q", namespacedName.Name),
-		)
-	}
-
-	if !ResourceNameRegex.MatchString(namespacedName.Namespace) {
-		return flaterrors.Join(
-			ErrVal,
-			fmt.Errorf("cannot validate namespace %q", namespacedName.Namespace),
-		)
-	}
-
-	return nil
-}
-
-func ValidateResourceName(s string) error {
-	if ResourceNameRegex.MatchString(s) {
-		return nil
-	}
-
-	return flaterrors.Join(
-		ErrVal,
-		fmt.Errorf("cannot validate resource name %q", s),
-	)
 }
 
 type avk struct {

@@ -63,10 +63,10 @@ func main() {
 	v1alpha1.RegisterWithManager(apiServer)
 
 	// -- dynamic resource decoder
-	drd := codecadapter.NewDynamicResourceDecoder(apiServer)
+	_ = codecadapter.NewDynamicResourceDecoder(apiServer)
 
 	// -- storage encoding
-	storageCodec, err := codecadapter.New(defaultStorageEncoding)
+	storageCodec, err := NewCodec(defaultStorageEncoding)
 	if err != nil {
 		logErrAndExit(err)
 		return
@@ -107,7 +107,7 @@ func main() {
 		// NewApply(), // Read, UpdateOrCreate
 		NewCreate(apiServer, storage),
 		NewDelete(apiServer, storage),
-		NewEdit(apiServer, drd, storage), // List, EditText, UpdateOrCreate
+		NewEdit(apiServer, storage), // List, EditText, UpdateOrCreate
 		NewGet(apiServer, storage),
 		// NewGrep(TODO), // List, regexp.Match, Print
 		NewRender(apiServer, storage),

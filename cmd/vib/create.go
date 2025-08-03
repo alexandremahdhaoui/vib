@@ -22,7 +22,6 @@ import (
 	"log/slog"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
-	codecadapter "github.com/alexandremahdhaoui/vib/internal/adapter/codec"
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
@@ -76,7 +75,7 @@ func (g *create) Description() string {
 
 // Run implements Command.
 func (g *create) Run() error {
-	outputCodec, err := codecadapter.New(types.Encoding(g.outputEnc))
+	outputCodec, err := NewCodec(types.Encoding(g.outputEnc))
 	if err != nil {
 		return err
 	}
@@ -99,6 +98,11 @@ func (g *create) Run() error {
 
 	res.Metadata.Name = name
 	res.Metadata.Namespace = g.namespace
+
+	if err := types.ValidateResource(res); err != nil {
+		return err
+	}
+
 	if err := g.storage.Create(res); err != nil {
 		return err
 	}

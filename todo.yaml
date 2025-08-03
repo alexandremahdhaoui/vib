@@ -4,21 +4,70 @@ TODOs:
     - Add a section guiding through the initial setup
     - Add usage and getting started section
     - Add more example
+
   code:
     Validate:
-      - Metadata (resource name, namespace)
-      - APIVersion
-      - Kind
+      - TODO: |
+          Refactor validation using a hook defined in the APIServer
+          -> The registration of an APIVersion should be refactored from
+          returning a type.AVKFunc to updating a leaf (by adding the func
+          and the hook configuration to the leaf).
+          -> Hooks allow non-static configuration.
+      - When?:
+          - Validation must be performed when a resource is unmarshalled?
+          - Or?:
+              - by the cli layer: to catch errors early (for user experience)
+              - and by the storage layer: to ensure invalid data is never persisted
+
     Resources:
-      - Config
-      - Namespaces: e.g. allow configuring multiple directories
-      - Documentation: |
-          DocConfig can be used to set up a new directory containing
-          notes or docs.
+      - Config: |
+          Add the config resource to v1alpha1.
+          Config should allow storing namespaces at particular location?
+
+      - ScriptSet: |
+          A directory where script can be added to PATH
+
+          It allows users to "apply", "get", "edit", "delete" scripts contained in
+          this directory.
+
+      - DocSet: |
+          DocSet can be used to set up a new directory containing notes or docs.
+
+          It allows users to "apply", "get", "edit", "delete" docs contained in
+          this directory.
+
+      - Namespace: |
+          Add the Namespace resource.
+          To let users query existing namespaces.
+          This may require to create a "_global" namespace for non-namespaced resources.
+
+          When should a namespace be created?
+
+          One feature of the namespace is that it can be stored on disk at a particular
+          location.
+          This feature would allow user to source resources from different git repositories.
+          E.g.: user can have:
+            - a namespace named "private" containing its personal config from a private
+              repository
+            - a namespace named "team-a" containing the config specific to its team.
+          => User can then have a profile containing both its private and team specific config.
+
+          Question: we only have a filesystem storage adapter atm, what if there is another
+                    storage type?
+                    How is this represented in the config?
+
     Commands:
       - apply: |
           User can "CreateOrUpdate" many resources in batch.
           It requires the "-f" flag.
+
       - grep: |
           User can search resources content by regex.
 
+      - get all: |
+          User can get all resources from a namespace.
+
+    CLI:
+      - Formatter:
+          - Add "-o name" && "-o table" as output format
+          - It require refactoring OutputCodec to Formatter

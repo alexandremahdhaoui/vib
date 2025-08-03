@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
-	codecadapter "github.com/alexandremahdhaoui/vib/internal/adapter/codec"
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
@@ -80,7 +79,7 @@ func (g *get) Run() error {
 		)
 	}
 
-	outputCodec, err := codecadapter.New(types.Encoding(g.outputEnc))
+	outputCodec, err := NewCodec(types.Encoding(g.outputEnc))
 	if err != nil {
 		return err
 	}

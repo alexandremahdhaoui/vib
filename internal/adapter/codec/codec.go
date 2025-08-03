@@ -18,14 +18,12 @@ package codecadapter
 
 import (
 	"encoding/json"
-	"fmt"
+
+	"github.com/alexandremahdhaoui/vib/internal/types"
 
 	// INFO: Package "sigs.k8s.io/yaml" ensures that json tags specifying
 	// omitempty are respected
 	"sigs.k8s.io/yaml"
-
-	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
-	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
 var (
@@ -33,19 +31,8 @@ var (
 	_ types.Codec = &yamlCodec{}
 )
 
-// TODO: move this function outside this package.
-func New(encoding types.Encoding) (types.Codec, error) {
-	switch encoding {
-	case types.JSONEncoding:
-		return &jsonCodec{}, nil
-	case types.YAMLEncoding:
-		return &yamlCodec{}, nil
-	default:
-		return nil, flaterrors.Join(
-			types.ErrEncoding,
-			fmt.Errorf("unrecognized encoding %q", encoding),
-		)
-	}
+func NewJSON() types.Codec {
+	return &jsonCodec{}
 }
 
 type jsonCodec struct{}
@@ -60,6 +47,10 @@ func (s *jsonCodec) Unmarshal(data []byte, v any) error {
 
 func (s *jsonCodec) Encoding() types.Encoding {
 	return types.JSONEncoding
+}
+
+func NewYAML() types.Codec {
+	return &yamlCodec{}
 }
 
 type yamlCodec struct{}

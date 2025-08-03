@@ -66,11 +66,16 @@ func (fs *filesystem) List(
 	avk types.APIVersionKind,
 	namespace string,
 ) ([]types.Resource[types.APIVersionKind], error) {
-	if avk.APIVersion() == "" {
-		return nil, errAPIVersionMustBeSpecified
+	if err := types.ValidateAPIVersion(avk.APIVersion()); err != nil {
+		return nil, flaterrors.Join(err, errAPIVersionMustBeSpecified)
+	}
+
+	if err := types.ValidateNamespace(namespace); err != nil {
+		return nil, err
 	}
 
 	out := make([]types.Resource[types.APIVersionKind], 0)
+
 	namespaceAbsPath := fs.computeNamespaceAbsPath(namespace)
 
 	// Get all instance of T.
@@ -113,8 +118,15 @@ func (fs *filesystem) Get(
 	avk types.APIVersionKind,
 	nsName types.NamespacedName,
 ) (types.Resource[types.APIVersionKind], error) {
-	if avk.APIVersion() == "" {
-		return types.Resource[types.APIVersionKind]{}, errAPIVersionMustBeSpecified
+	if err := types.ValidateAPIVersion(avk.APIVersion()); err != nil {
+		return types.Resource[types.APIVersionKind]{}, flaterrors.Join(
+			err,
+			errAPIVersionMustBeSpecified,
+		)
+	}
+
+	if err := types.ValidateNamespacedName(nsName); err != nil {
+		return types.Resource[types.APIVersionKind]{}, err
 	}
 
 	v, err := fs.read(fs.computeResourceAbsPath(avk, nsName, false))
@@ -129,6 +141,10 @@ func (fs *filesystem) Get(
 
 // Create should create only if file does not already exist.
 func (fs *filesystem) Create(res types.Resource[types.APIVersionKind]) error {
+	if err := types.ValidateResource(res); err != nil {
+		return err
+	}
+
 	nsName := types.NamespacedName{
 		Name:      res.Metadata.Name,
 		Namespace: res.Metadata.Namespace,
@@ -153,6 +169,30 @@ func (fs *filesystem) Create(res types.Resource[types.APIVersionKind]) error {
 	}
 
 	return fs.writeAtomic(res)
+}
+
+func (fs *filesystem) Update(v types.Resource[types.APIVersionKind]) error {
+	if err := types.ValidateResource(v); err != nil {
+		return err
+	}
+
+	if err := fs.writeAtomic(v); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (fs *filesystem) Delete(avk types.APIVersionKind, nsName types.NamespacedName) error {
+	if err := types.ValidateAPIVersion(avk.APIVersion()); err != nil {
+		return flaterrors.Join(err, errAPIVersionMustBeSpecified)
+	}
+
+	if err := types.ValidateNamespacedName(nsName); err != nil {
+		return err
+	}
+
+	return os.Remove(fs.computeResourceAbsPath(avk, nsName, false))
 }
 
 func (fs *filesystem) writeAtomic(v types.Resource[types.APIVersionKind]) error {
@@ -184,22 +224,6 @@ func (fs *filesystem) writeAtomic(v types.Resource[types.APIVersionKind]) error 
 	}
 
 	return nil
-}
-
-func (fs *filesystem) Update(v types.Resource[types.APIVersionKind]) error {
-	if err := fs.writeAtomic(v); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (fs *filesystem) Delete(avk types.APIVersionKind, nsName types.NamespacedName) error {
-	if avk.APIVersion() == "" {
-		return errAPIVersionMustBeSpecified
-	}
-
-	return os.Remove(fs.computeResourceAbsPath(avk, nsName, false))
 }
 
 // read tries to read file corresponding to the specified object's name.

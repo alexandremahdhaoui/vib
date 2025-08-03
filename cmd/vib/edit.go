@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
-	codecadapter "github.com/alexandremahdhaoui/vib/internal/adapter/codec"
 	"github.com/alexandremahdhaoui/vib/internal/types"
 	"github.com/alexandremahdhaoui/vib/internal/util"
 )
@@ -39,7 +38,6 @@ const editDesc = `
 
 func NewEdit(
 	apiServer types.APIServer,
-	drd types.DynamicDecoder[types.APIVersionKind],
 	storage types.Storage,
 ) Command {
 	out := &edit{
@@ -101,7 +99,7 @@ func (e *edit) Run() error {
 		)
 	}
 
-	outputCodec, err := codecadapter.New(types.Encoding(e.outputEnc))
+	outputCodec, err := NewCodec(types.Encoding(e.outputEnc))
 	if err != nil {
 		return err
 	}
@@ -134,6 +132,7 @@ func (e *edit) Run() error {
 		apiVersion := res.APIVersion
 		kind := res.Kind
 		name := res.Metadata.Name
+		namespace := res.Metadata.Namespace
 
 		// marshal content to edit
 		bIn, err := outputCodec.Marshal(res)
@@ -151,10 +150,17 @@ func (e *edit) Run() error {
 			return err
 		}
 
+		// -- validate resource
+		if err := types.ValidateResource(res); err != nil {
+			return err
+		}
+
+		// -- validate apiVersion, kind, name and namespace are unchanged.
 		if res.APIVersion != apiVersion ||
 			res.Kind != kind ||
-			res.Metadata.Name != name {
-			return errors.New(`"apiVersion", "kind" and "name" are unmutable`)
+			res.Metadata.Name != name ||
+			res.Metadata.Namespace != namespace {
+			return errors.New(`"apiVersion", "kind", "name" and "namespace" are immutable`)
 		}
 
 		// -- 3. For each resource: Update
