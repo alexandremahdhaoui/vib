@@ -310,8 +310,8 @@ func NewExportedEnvironmentResolver() types.Resource[types.APIVersionKind] {
 			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
 				Type: FmtResolverType,
 				Fmt: &FmtResolverSpec{
-					Template:     "export %s=%q",
-					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
+					Template:     "%s=%q\nexport %s",
+					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument, KeyFmtArgument},
 				},
 			},
 		),
