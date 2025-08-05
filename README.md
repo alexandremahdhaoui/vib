@@ -181,8 +181,8 @@ EOF
 
 | Command | Description |
 |---------|-------------|
-| Apply   | Apply resource from stdin or a file. |
-| Create  | Create a new resource. |
+| Apply   | Applies resources from stdin or a file. |
+| Create  | Creates a new resource. |
 | Delete  | Deletes a resource. |
 | Edit    | Edit a resource. |
 | Get     | Get a set of resource by name or list all resources in a namespace. |
