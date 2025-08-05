@@ -1,5 +1,9 @@
 ---
 TODOs:
+  cmd/vib-installer: |
+    TODO: Hostname can be an invalid resource name:
+          Regex the hostname, if invalid set profile name to default
+
   documentation:
     - Add a section guiding through the initial setup
     - Add usage and getting started section

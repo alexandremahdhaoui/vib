@@ -10,8 +10,6 @@ with their teams, organization and across any platforms.
 ```bash
 VERSION=v1.0.0
 URL="https://raw.githubusercontent.com/alexandremahdhaoui/vib/refs/tags/${VERSION}/cmd/vib-installer/vib-installer.sh"
-# TODO: fix script: hostname can be an invalid resource name:
-# -> regex the hostname, if invalid set profile name to default
 curl -sfL "${URL}" | sh -s "${VERSION}"
 ```
 
