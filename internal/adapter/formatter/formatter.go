@@ -13,3 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+package formatter
+
+// TODO: Add the following formatter:
+// - table
+// - name (only print a list of names)
+// - json (with indentation)
+// - yaml
+
+// TODO: migrate "cmd/vib" from using OutputCodec to Formatter.

@@ -1,17 +1,20 @@
 module github.com/alexandremahdhaoui/vib
 
-go 1.20
+go 1.24
 
 require (
-	github.com/mitchellh/mapstructure v1.5.0
-	github.com/urfave/cli/v2 v2.25.7
-	go.uber.org/zap v1.25.0
-	gopkg.in/yaml.v3 v3.0.1
+	github.com/alexandremahdhaoui/tooling v0.1.4
+	github.com/stretchr/testify v1.9.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.uber.org/multierr v1.10.0 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+require (
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 )

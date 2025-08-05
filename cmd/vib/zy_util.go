@@ -13,3 +13,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package main
+
+import (
+	"fmt"
+
+	"github.com/alexandremahdhaoui/tooling/pkg/flaterrors"
+	codecadapter "github.com/alexandremahdhaoui/vib/internal/adapter/codec"
+	"github.com/alexandremahdhaoui/vib/internal/types"
+)
+
+func NewCodec(encoding types.Encoding) (types.Codec, error) {
+	switch encoding {
+	case types.JSONEncoding:
+		return codecadapter.NewJSON(), nil
+	case types.YAMLEncoding:
+		return codecadapter.NewYAML(), nil
+	default:
+		return nil, flaterrors.Join(
+			types.ErrEncoding,
+			fmt.Errorf("unrecognized encoding %q", encoding),
+		)
+	}
+}

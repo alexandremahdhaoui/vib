@@ -13,295 +13,271 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
-	"github.com/alexandremahdhaoui/vib"
-	"github.com/alexandremahdhaoui/vib/pkg/api"
-	"github.com/alexandremahdhaoui/vib/pkg/logger"
-	"github.com/urfave/cli/v2"
-	"gopkg.in/yaml.v3"
+	"io"
+	"log/slog"
 	"os"
+	"path/filepath"
+
+	codecadapter "github.com/alexandremahdhaoui/vib/internal/adapter/codec"
+	storageadapter "github.com/alexandremahdhaoui/vib/internal/adapter/storage"
+	"github.com/alexandremahdhaoui/vib/internal/service"
+	"github.com/alexandremahdhaoui/vib/internal/types"
+	"github.com/alexandremahdhaoui/vib/pkg/apis/v1alpha1"
 )
+
+// // ConfigSpec stores important information to run the vib command line.
+// // The config is always stored on disk, thus the Operator for managing Config will always be of type
+// // vib.FilesystemOperator.
+// type ConfigSpec struct {
+// 	// StorageStrategy defines which storage strategy must be used (only filesystem is supported).
+// 	StorageStrategy storageadapter.StorageStrategy
+// 	// ResourceDir specifies the absolute path to Resource definitions.
+// 	// Defaults to CONFIG_DIR/vib/resources
+// 	ResourceDir string
+// }
 
 const (
-	cliName = "vib"
-
-	// Commands
-	get       = "get"
-	create    = "create"
-	edit      = "edit"
-	deleteCmd = "delete"
-	apply     = "apply"
-	render    = "render"
-
-	// Flag categories
-	basicCategory    = "Basic Commands"
-	miscCategory     = "Miscellaneous"
-	selectorCategory = "Selectors"
+	defaultStorageEncoding = types.YAMLEncoding
+	defaultOutputEncoding  = types.YAMLEncoding
 )
 
-var appVersion = "dev" //nolint:gochecknoglobals
+type Command interface {
+	Description() string
+	FS() *flag.FlagSet
+	Run() error
+}
 
 func main() {
-	logger.New(false)
+	// --------------------
+	// - INIT
+	// --------------------
 
-	app := &cli.App{ //nolint:exhaustruct,exhaustivestruct
-		Name:    cliName,
-		Usage:   "vib (pronounced \"vibe\") allows users to intuitively manage their bash environment across all their platforms.", //nolint:lll
-		Version: appVersion,
-		Commands: cli.Commands{
-			// Basic Commands
-			Get(),
-			Create(),
-			Edit(),
-			Delete(),
-			Apply(),
+	// -- apiServer
+	apiServer := service.NewAPIServer()
+	v1alpha1.RegisterWithManager(apiServer)
 
-			// Render
-			Render(),
-		},
-		Flags: []cli.Flag{debugFlag()},
-	}
-	if err := app.Run(os.Args); err != nil {
-		logger.Fatal(err)
-	}
-}
+	// -- dynamic resource decoder
+	drd := codecadapter.NewDynamicResourceDecoder(apiServer)
 
-//----------------------------------------------------------------------------------------------------------------------
-// Get
-//----------------------------------------------------------------------------------------------------------------------
-
-func Get() *cli.Command {
-	return &cli.Command{ //nolint:exhaustruct,exhaustivestruct
-		Name:     get,
-		Usage:    "Display one or many resources",
-		Category: basicCategory,
-		Action: func(cctx *cli.Context) error {
-
-			server, err := fastInit()
-			if err != nil {
-				return err
-			}
-
-			resources, err := GetResources(cctx, server)
-			if err != nil {
-				return err
-			}
-
-			b, err := yaml.Marshal(resources)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(b))
-
-			return nil
-		},
-	}
-}
-
-func GetResources(cctx *cli.Context, server api.APIServer) ([]api.ResourceDefinition, error) {
-	apiVersion, kind := ParseAPIVersionAndKindFromArgs(cctx)
-	if kind == nil {
-		return nil, pleaseSpecifyAResourceKind()
+	// -- storage encoding
+	storageCodec, err := NewCodec(defaultStorageEncoding)
+	if err != nil {
+		logErrAndExit(err)
+		return
 	}
 
-	names := ParseResourceNamesFromArgs(cctx)
-	// Condition were user didn't specify any name
-	if len(names) == 0 {
-		resources, err := server.Get(apiVersion, *kind, nil)
-		if err != nil {
-			return nil, err
+	// -- vib config dir
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		logErrAndExit(err)
+		return
+	}
+	vibConfigDir := filepath.Join(userConfigDir, "vib")
+
+	// -- storage
+	storage, err := storageadapter.NewFilesystem(
+		apiServer,
+		storageCodec,
+		vibConfigDir,
+	)
+	if err != nil {
+		logErrAndExit(err)
+		return
+	}
+
+	// --------------------
+	// - INIT VIB SYSTEM
+	// --------------------
+	if err := initVibSystemNamespace(storage); err != nil {
+		logErrAndExit(err)
+		return
+	}
+
+	// --------------------
+	// - DECLARE CMDS
+	// --------------------
+
+	cmds := []Command{
+		NewApply(drd, storage), // Read, UpdateOrCreate
+		NewCreate(apiServer, storage),
+		NewDelete(apiServer, storage),
+		NewEdit(apiServer, storage), // List, EditText, UpdateOrCreate
+		NewGet(apiServer, storage),
+		// NewGrep(TODO), // List, regexp.Match, Print
+		NewRender(apiServer, storage),
+	}
+
+	if len(os.Args) < 2 {
+		help(os.Stderr, cmds)
+		os.Exit(1)
+	}
+
+	// --------------------
+	// - RUN CMDS
+	// --------------------
+
+	found := false
+	for _, cmd := range cmds {
+		if os.Args[1] != cmd.FS().Name() {
+			continue
 		}
 
-		return resources, nil
-	}
-
-	results := make([]api.ResourceDefinition, 0)
-	// Condition were user specified name(s)
-	for _, name := range names {
-		resources, err := server.Get(apiVersion, *kind, &name)
-		if err != nil {
-			return nil, err
+		found = true
+		if len(os.Args) > 1 {
+			if err := cmd.FS().Parse(os.Args[2:]); err != nil {
+				help(os.Stderr, cmds) // actually not called
+				os.Exit(1)            // not called
+			}
 		}
 
-		results = append(results, resources...)
+		if err := cmd.Run(); err != nil {
+			logErrAndExit(err)
+			return
+		}
+
+		break
 	}
 
-	return results, nil
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// Create
-//----------------------------------------------------------------------------------------------------------------------
-
-func Create() *cli.Command {
-	return &cli.Command{ //nolint:exhaustruct,exhaustivestruct
-		Name:     create,
-		Usage:    "Create a resource from a file or from stdin",
-		Category: basicCategory,
-		Flags: []cli.Flag{
-			debugFlag(),
-			fileFlag(),
-		},
-		Action: func(cctx *cli.Context) error {
-			apiServer, err := fastInit()
-			if err != nil {
-				return err
-			}
-
-			resource, err := resourceFromFileOrStdin(cctx)
-			if err != nil {
-				return err
-			}
-
-			err = apiServer.Create(resource)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		},
+	if !found {
+		help(os.Stderr, cmds)
+		os.Exit(1)
 	}
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-// Edit
-//----------------------------------------------------------------------------------------------------------------------
-
-func Edit() *cli.Command {
-	return &cli.Command{ //nolint:exhaustruct,exhaustivestruct
-		Name:     edit,
-		Usage:    "Edit a resource",
-		Category: basicCategory,
-		Action: func(cctx *cli.Context) error {
-			_, kind := ParseAPIVersionAndKindFromArgs(cctx)
-			if kind == nil {
-				return pleaseSpecifyAResourceKind()
-			}
-
-			names := ParseResourceNamesFromArgs(cctx)
-			if len(names) == 0 {
-				return pleaseSpecifyValidResourceNames()
-			}
-
-			// TODO implement me
-			panic("not implemented yet")
-
-			return nil
-		},
-	}
+func logErrAndExit(err error) {
+	slog.Error(err.Error())
+	os.Exit(1)
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-// Delete
-//----------------------------------------------------------------------------------------------------------------------
+const usageFmt = `USAGE: %s [command]
 
-func Delete() *cli.Command {
-	return &cli.Command{ //nolint:exhaustruct,exhaustivestruct
-		Name:     deleteCmd,
-		Usage:    "Delete a resource by name",
-		Category: basicCategory,
-		Action: func(cctx *cli.Context) error {
-			apiVersion, kind := ParseAPIVersionAndKindFromArgs(cctx)
-			if kind == nil {
-				return pleaseSpecifyAResourceKind()
+Available Commands:
+
+`
+
+func help(w io.Writer, cmds []Command) {
+	fmt.Fprintf(w, usageFmt, os.Args[0]) //nolint: errcheck
+
+	for _, cmd := range cmds {
+		fmt.Fprintf(w, "%s\n", cmd.FS().Name()) //nolint: errcheck
+
+		// TODO: ensure that description does not exceed (80-indent) charachters per line
+		indent := "\t"
+		fmt.Fprintf(w, "%s%s\n", indent, cmd.Description()) //nolint: errcheck
+		fmt.Fprintf(w, "%sFlags:\n", indent)                //nolint: errcheck
+
+		indent = "\t\t"
+		cmd.FS().VisitAll(func(fl *flag.Flag) {
+			var longFlag string
+			if len(fl.Name) > 1 {
+				longFlag = "-"
 			}
 
-			names := ParseResourceNamesFromArgs(cctx)
-			if len(names) == 0 {
-				return pleaseSpecifyValidResourceNames()
-			}
+			fmt.Fprintf(w, "%s-%s%s\t%s\n", indent, longFlag, fl.Name, fl.Usage) //nolint: errcheck
+		})
 
-			apiServer, err := fastInit()
-			if err != nil {
-				return err
-			}
-
-			for _, name := range names {
-				if err = apiServer.Delete(apiVersion, *kind, name); err != nil {
-					return err //nolint:wrapcheck
-				}
-			}
-
-			return nil
-		},
+		fmt.Fprintf(w, "\n") //nolint: errcheck
 	}
+
+	fmt.Fprintf(w, "\n") //nolint: errcheck
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-// Apply
-//----------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// - LIST RESOURCES
+// ---------------------------------------------------------------------
 
-func Apply() *cli.Command {
-	return &cli.Command{ //nolint:exhaustruct,exhaustivestruct
-		Name:  apply,
-		Usage: "Apply resource from a file or from stdin",
-		Flags: []cli.Flag{
-			debugFlag(),
-			fileFlag(),
-		},
-		Action: func(cctx *cli.Context) error {
-			apiServer, err := fastInit()
-			if err != nil {
-				return err
-			}
-
-			resource, err := resourceFromFileOrStdin(cctx)
-			if err != nil {
-				return err
-			}
-
-			err = apiServer.Update(&resource.APIVersion, resource.Kind, resource.Metadata.Name, resource)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		},
-	}
+type ListArgs struct {
+	APIVersion types.APIVersion
+	Kind       types.Kind
+	NameFilter map[string]struct{}
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-// Render
-//----------------------------------------------------------------------------------------------------------------------
-
-func Render() *cli.Command {
-	return &cli.Command{ //nolint:exhaustruct,exhaustivestruct
-		Name:  render,
-		Usage: "Render the designated profile",
-		Flags: []cli.Flag{
-			debugFlag(),
-		},
-		Action: func(cctx *cli.Context) error {
-			buffer := ""
-
-			server, err := fastInit()
-			if err != nil {
-				return err
-			}
-
-			resources, err := GetResources(cctx, server)
-			if err != nil {
-				return err
-			}
-
-			for _, resource := range resources {
-				s, err := vib.Render(&resource, server)
-				if err != nil {
-					return err
-				}
-
-				buffer = vib.JoinLine(buffer, s)
-
-			}
-
-			fmt.Println(buffer)
-
-			return nil
-		},
+// List must return a list of resources.
+// The caller (i.e. "get") can then choose how to format the result.
+// List can be used for other calls such as render
+func List(
+	storage types.Storage,
+	apiVersion types.APIVersion,
+	kind types.Kind,
+	nameFilter map[string]struct{},
+	namespace string,
+) ([]types.Resource[types.APIVersionKind], error) {
+	avk := types.NewAPIVersionKind(apiVersion, kind)
+	list, err := storage.List(avk, namespace)
+	if err != nil {
+		return nil, err
 	}
+
+	if len(nameFilter) == 0 {
+		return list, nil
+	}
+
+	out := make([]types.Resource[types.APIVersionKind], 0)
+	found := false
+	for _, res := range list {
+		if _, ok := nameFilter[res.Metadata.Name]; !ok {
+			continue
+		}
+		out = append(out, res)
+		found = true
+	}
+
+	if !found {
+		return nil, errResource(
+			"cannot find resource",
+			apiVersion,
+			kind,
+			fmtSet(nameFilter),
+		)
+	}
+
+	return out, nil
+}
+
+// ---------------------------------------------------------------------
+// - HELPERS
+// ---------------------------------------------------------------------
+
+func errResource(errStr string, apiVersion types.APIVersion, kind types.Kind, name string) error {
+	return fmt.Errorf(
+		"%s: apiVersion=%q,kind=%q,nameFilters=%q",
+		errStr,
+		apiVersion,
+		kind,
+		name,
+	)
+}
+
+func fmtSet(set map[string]struct{}) string {
+	if len(set) == 0 {
+		return ""
+	}
+	var out string
+	for s := range set {
+		out = fmt.Sprintf("%s, %s", out, s)
+	}
+	return fmt.Sprintf("[%s]", out[2:])
+}
+
+// initVibSystemNamespace initialize the vib system namespace.
+func initVibSystemNamespace(storage types.Storage) error {
+	for _, resolver := range v1alpha1.DefaultAVKResolver() {
+		fixedResolver, ok := any(resolver).(types.Resource[types.APIVersionKind])
+		if !ok {
+			panic("Please fix your commit before submitting a PR")
+		}
+
+		fixedResolver.Metadata.Namespace = types.VibSystemNamespace
+		if err := storage.Create(fixedResolver); err != nil && !errors.Is(err, types.ErrExists) {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -1,3 +1,4 @@
+---
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: ExpressionSet
 metadata:
@@ -6,7 +7,7 @@ spec:
   keyValues:
     - k: kubectl "${@}"
     - ka: kubectl apply -f "${@}"
-    - kns-current:  kubectl config view --minify -o jsonpath='{..namespace}'
+    - kns-current: kubectl config view --minify -o jsonpath='{..namespace}'
     - kctx: |-
         __err_no_match() { echo Cannot match context with pattern \"${1}\"; }
 
@@ -20,7 +21,7 @@ spec:
         # - if and only if 1 match: don't prompt for selection and use this context
         CONTEXT_MATCH=$(echo "${CONTEXTS}" | grep --color=none "${CONTEXT_PATTERN}")
         if [ -z "${CONTEXT_MATCH}" ]; then __err_no_match "${CONTEXT_PATTERN}"; return 1; fi
-        
+
         CONTEXT_SELECTED=""
         if [ $(echo ${CONTEXT_MATCH} | wc -w) == "1" ]; then
           CONTEXT_SELECTED="${CONTEXT_MATCH}"
@@ -33,7 +34,7 @@ spec:
         fi
 
         if [ -z "${CONTEXT_SELECTED}" ]; then echo Please select a context; return 1; fi
-        
+
         # Use context on selected context
         kubectl config use-context "${CONTEXT_SELECTED}" &&\
           echo Successfully selected context \"${CONTEXT_SELECTED}\" ||\

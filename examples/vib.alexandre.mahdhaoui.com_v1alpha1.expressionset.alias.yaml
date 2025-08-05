@@ -1,15 +1,16 @@
+---
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: ExpressionSet
 metadata:
-    name: alias
+  name: alias
 spec:
-    keyValues:
-        - grep: grep --color=always
-        - less: less -N
-        - ls: ls --color=always
-        - ll: ls -laF
-        - h: helm
-        - hi: helm upgrade --install
-        - hid: h install --dry-run
-        - hdu: h dependency update
-    resolverRef: alias
+  keyValues:
+    - grep: grep --color=always
+    - less: less -N
+    - ls: ls --color=always
+    - ll: ls -laF
+    - h: helm
+    - hi: helm upgrade --install
+    - hid: h install --dry-run
+    - hdu: h dependency update
+  resolverRef: alias
