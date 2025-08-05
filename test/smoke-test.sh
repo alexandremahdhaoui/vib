@@ -43,9 +43,8 @@ kind: ExpressionSet
 metadata:
   name: default-es
 spec:
-  arbitraryKeys: null
-  keyValues:
-    - key: value
+  arbitraryKeys:
+    - key
   resolverRef:
     name: plain
     namespace: vib-system
@@ -58,8 +57,8 @@ metadata:
   name: nst-0-es
   namespace: nst-0
 spec:
-  arbitraryKeys:
-    - key
+  keyValues:
+    - key: value
   resolverRef:
     name: function
     namespace: vib-system
