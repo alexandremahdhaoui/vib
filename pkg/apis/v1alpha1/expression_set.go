@@ -45,10 +45,8 @@ func (e ExpressionSetSpec) Kind() types.Kind {
 
 // Render implements types.Renderer.
 func (e *ExpressionSetSpec) Render(storage types.Storage) (string, error) {
-	if err := types.NamespacedNameDefaulter(&e.ResolverRef); err != nil {
-		return "", err
-	}
-	if err := types.ValidateNamespacedName(e.ResolverRef); err != nil {
+	resolverRef := defaultRef(e.ResolverRef)
+	if err := types.ValidateNamespacedName(resolverRef); err != nil {
 		return "", err
 	}
 
@@ -83,4 +81,11 @@ func (e *ExpressionSetSpec) Render(storage types.Storage) (string, error) {
 	}
 
 	return buf, nil
+}
+
+func defaultRef(nsName types.NamespacedName) types.NamespacedName {
+	if nsName.Namespace == "" {
+		nsName.Namespace = types.DefaultNamespace
+	}
+	return nsName
 }

@@ -179,10 +179,11 @@ EOF
 
 ## vib's commands
 
-| Command | Description                                                                                                                                                                                                                        |
-|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Get     | Returns the Resource Definition of the specified Kind. Works like `kubectl get`, meaning that we can get the full yaml definition or just a list of defined kinds. We could also get the templated results of the specified kinds. |
-| Create  | Create a new resource of the specified Kind                                                                                                                                                                                        |
-| Edit    | Edit a specific Resource Definition.                                                                                                                                                                                               |
-| Delete  | Deletes a Resource Definition from `vib`.                                                                                                                                                                                          |
-| Apply   | Apply resource definitions or a list of files to `vib`.                                                                                                                                                                            |
+| Command | Description |
+|---------|-------------|
+| Apply   | Apply resource from stdin or a file. |
+| Create  | Create a new resource. |
+| Delete  | Deletes a resource. |
+| Edit    | Edit a resource. |
+| Get     | Get a set of resource by name or list all resources in a namespace. |
+| Render  | Renders the specified resource. |

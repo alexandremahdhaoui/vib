@@ -54,7 +54,7 @@ items:
     metadata:
       name: ItemFromExpressionSet
   - apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
-    kind: Expression
+    kind: ExpressionSet
     metadata:
       name: test-test
 `)

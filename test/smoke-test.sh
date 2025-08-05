@@ -37,8 +37,7 @@ ${VIB} create expressionset default-es
 ${VIB} create -n nst-0 expressionset nst-0-es
 ${VIB} create -n nst-1 profile nst-1-p
 
-# TODO: add "vib apply" command instead of this hacky solution.
-cat <<EOF >"${VIB_PATH}/default/vib.alexandre.mahdhaoui.com_v1alpha1.expressionset.default-es.yaml"
+cat <<EOF | ${VIB} apply -f -
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: ExpressionSet
 metadata:
@@ -52,22 +51,21 @@ spec:
     namespace: vib-system
 EOF
 
-cat <<EOF >"${VIB_PATH}/nst-0/vib.alexandre.mahdhaoui.com_v1alpha1.expressionset.nst-0-es.yaml"
+cat <<EOF | ${VIB} apply -f -
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: ExpressionSet
 metadata:
   name: nst-0-es
   namespace: nst-0
 spec:
-  arbitraryKeys: null
-  keyValues:
-    - key: value
+  arbitraryKeys:
+    - key
   resolverRef:
     name: function
     namespace: vib-system
 EOF
 
-cat <<EOF >"${VIB_PATH}/nst-1/vib.alexandre.mahdhaoui.com_v1alpha1.profile.nst-1-p.yaml"
+cat <<EOF | ${VIB} apply -f -
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: Profile
 metadata:

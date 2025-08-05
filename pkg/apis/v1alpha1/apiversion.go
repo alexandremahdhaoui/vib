@@ -19,7 +19,6 @@ package v1alpha1
 import "github.com/alexandremahdhaoui/vib/internal/types"
 
 const (
-	ExpressionKind    types.Kind = "Expression"
 	ExpressionSetKind types.Kind = "ExpressionSet"
 	SetKind           types.Kind = "Set"
 	ResolverKind      types.Kind = "Resolver"
@@ -30,7 +29,6 @@ const (
 
 func RegisterWithManager(mgr types.APIServer) {
 	mgr.Register([]types.AVKFunc{
-		func() types.APIVersionKind { return &ExpressionSpec{} },
 		func() types.APIVersionKind { return &ExpressionSetSpec{} },
 		func() types.APIVersionKind { return &ResolverSpec{} },
 		func() types.APIVersionKind { return &ProfileSpec{} },

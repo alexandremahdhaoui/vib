@@ -40,47 +40,19 @@ func (p ProfileSpec) Kind() types.Kind {
 
 // Render implements types.Renderer.
 func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
-	refs := make(map[types.NamespacedName]string, len(p.Refs))
+	refList := make([]types.NamespacedName, len(p.Refs))
+	refMap := make(map[types.NamespacedName]string, len(p.Refs))
+
 	namespaces := make(map[string]struct{})
-	for _, ref := range p.Refs {
-		if err := types.NamespacedNameDefaulter(&ref); err != nil {
-			return "", err
-		}
-		if err := types.ValidateNamespacedName(ref); err != nil {
-			return "", err
-		}
-
-		refs[ref] = ""
-		namespaces[ref.Namespace] = struct{}{}
-	}
-
-	// -- Expressions
-	eList := make([]types.Resource[*ExpressionSpec], 0)
-	for ns := range namespaces {
-		l, err := types.ListTypedResourceFromStorage(
-			storage,
-			ns,
-			&ExpressionSpec{},
-		)
-		if err != nil {
+	for i, ref := range p.Refs {
+		defaultedRef := defaultRef(ref)
+		if err := types.ValidateNamespacedName(defaultedRef); err != nil {
 			return "", err
 		}
 
-		eList = append(eList, l...)
-	}
-
-	for _, e := range eList {
-		nsName := types.NewNamespacedNameFromMetadata(e.Metadata)
-		if _, ok := refs[nsName]; !ok {
-			continue
-		}
-
-		s, err := e.Spec.Render(storage)
-		if err != nil {
-			return "", err
-		}
-
-		refs[nsName] = s
+		refList[i] = defaultedRef
+		refMap[defaultedRef] = ""
+		namespaces[defaultedRef.Namespace] = struct{}{}
 	}
 
 	// -- Expression sets
@@ -100,7 +72,7 @@ func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 
 	for _, es := range esList {
 		nsName := types.NewNamespacedNameFromMetadata(es.Metadata)
-		if _, ok := refs[nsName]; !ok {
+		if _, ok := refMap[nsName]; !ok {
 			continue
 		}
 
@@ -109,13 +81,13 @@ func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 			return "", err
 		}
 
-		refs[nsName] = s
+		refMap[nsName] = s
 	}
 
 	buf := ""
-	for _, ref := range p.Refs {
-		buf = util.JoinLine(buf, refs[ref])
-		delete(refs, ref)
+	for _, ref := range refList {
+		buf = util.JoinLine(buf, refMap[ref])
+		delete(refMap, ref)
 	}
 
 	return buf, nil

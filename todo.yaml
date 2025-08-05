@@ -57,15 +57,11 @@ TODOs:
                     How is this represented in the config?
 
     Commands:
-      - apply: |
-          User can "CreateOrUpdate" many resources in batch.
-          It requires the "-f" flag.
-
       - grep: |
           User can search resources content by regex.
 
       - get all: |
-          User can get all resources from a namespace.
+          User can get all resources of any kind from a namespace.
 
     CLI:
       - Formatter:
