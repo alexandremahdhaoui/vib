@@ -112,6 +112,7 @@ func (g *create) Run() error {
 		"name", name,
 		"apiVersion", res.APIVersion,
 		"kind", res.Kind,
+		"namespace", res.Metadata.Namespace,
 	)
 
 	nameFilter := map[string]struct{}{name: {}}

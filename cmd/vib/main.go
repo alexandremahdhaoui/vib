@@ -63,7 +63,7 @@ func main() {
 	v1alpha1.RegisterWithManager(apiServer)
 
 	// -- dynamic resource decoder
-	_ = codecadapter.NewDynamicResourceDecoder(apiServer)
+	drd := codecadapter.NewDynamicResourceDecoder(apiServer)
 
 	// -- storage encoding
 	storageCodec, err := NewCodec(defaultStorageEncoding)
@@ -104,7 +104,7 @@ func main() {
 	// --------------------
 
 	cmds := []Command{
-		// NewApply(), // Read, UpdateOrCreate
+		NewApply(drd, storage), // Read, UpdateOrCreate
 		NewCreate(apiServer, storage),
 		NewDelete(apiServer, storage),
 		NewEdit(apiServer, storage), // List, EditText, UpdateOrCreate

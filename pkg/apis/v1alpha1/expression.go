@@ -38,6 +38,9 @@ func (e ExpressionSpec) Kind() types.Kind {
 
 // Render implements types.Renderer.
 func (e *ExpressionSpec) Render(storage types.Storage) (string, error) {
+	if err := types.NamespacedNameDefaulter(&e.ResolverRef); err != nil {
+		return "", err
+	}
 	if err := types.ValidateNamespacedName(e.ResolverRef); err != nil {
 		return "", err
 	}

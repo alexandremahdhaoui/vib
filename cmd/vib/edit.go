@@ -173,6 +173,7 @@ func (e *edit) Run() error {
 			"apiVersion", apiVersion,
 			"kind", kind,
 			"name", name,
+			"namespace", res.Metadata.Namespace,
 		)
 	}
 

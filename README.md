@@ -108,8 +108,12 @@ spec:
     - GOPATH: $(go env GOPATH)
     - GOBIN: ${GOPATH}/bin
     - PATH: ${PATH}:${GOBIN}
-  resolverRef: environment-exported
+  resolverRef:
+    name: environment-exported
+    namespace: vib-system
 EOF
+
+vib get expressionset env
 ```
 
 Quickly test your new `ExpressionSet` by rendering it.
@@ -144,7 +148,10 @@ spec:
     - less: less -N
     - ls: ls --color=always
     - ll: ls -laF
-  resolverRef: alias
+  resolverRef:
+    name: alias
+    namespace: vib-system
+EOF
 ```
 
 ### Edit your Profile
@@ -155,17 +162,19 @@ Reference your newly created `ExpressionSet`s in your Profile:
 vib edit profile "$(hostname)"
 ```
 
-It should looks something like this:
+Or run:
 
-```yaml
+```bash
+cat <<EOF | vib apply -f -
 apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
 kind: Profile
 metadata:
-  name: {{ Your profile name | Do not edit it }} 
+  name: $(hostname)
 spec:
   refs:
-    - env
-    - alias
+    - name: env
+    - name: alias
+EOF
 ```
 
 ## vib's commands

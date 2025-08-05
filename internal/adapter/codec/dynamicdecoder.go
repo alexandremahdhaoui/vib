@@ -111,24 +111,33 @@ func (d *rawDrd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind
 		for i, obj := range objectList {
 			if v, ok := obj["items"]; ok {
 				// TODO: handle list items
-				list, ok := v.([]any)
+				list, ok := v.([]map[string]any)
 				if !ok {
-					return nil, flaterrors.Join(errors.New("TODO"), types.ErrAtIndex(i))
+					return nil, flaterrors.Join(
+						errors.New("expected list of items"),
+						types.ErrAtIndex(i),
+					)
 				}
+
 				for _, raw := range list {
 					item, err := d.decodeOne(raw)
-					if err != nil {
+					if errors.Is(err, errNilResource) {
+						continue
+					} else if err != nil {
 						return nil, flaterrors.Join(err, types.ErrAtIndex(i))
 					}
 					out = append(out, item)
 				}
-			} else {
-				item, err := d.decodeOne(obj)
-				if err != nil {
-					return nil, flaterrors.Join(err, types.ErrAtIndex(i))
-				}
-				out = append(out, item)
+				continue
 			}
+
+			item, err := d.decodeOne(obj)
+			if errors.Is(err, errNilResource) {
+				continue
+			} else if err != nil {
+				return nil, flaterrors.Join(err, types.ErrAtIndex(i))
+			}
+			out = append(out, item)
 		}
 
 		// -- At this point, the output can be safely returned
@@ -139,10 +148,23 @@ func (d *rawDrd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind
 	return nil, flaterrors.Join(errInputMustBeJsonOrYaml, errDecodingInput)
 }
 
+var (
+	errAssertingType       = errors.New("asserting type")
+	errDecodingOneResource = errors.New("decoding one resource")
+	errNilResource         = errors.New("-- nil resource --")
+)
+
 func (d *rawDrd) decodeOne(v any) (types.Resource[types.APIVersionKind], error) {
 	m, ok := v.(map[string]any)
 	if !ok {
-		return types.Resource[types.APIVersionKind]{}, errors.New("TODO: decodeOne err")
+		return types.Resource[types.APIVersionKind]{}, flaterrors.Join(
+			errAssertingType,
+			errDecodingOneResource,
+		)
+	}
+
+	if m == nil { // ignore nil values
+		return types.Resource[types.APIVersionKind]{}, errNilResource
 	}
 
 	// Ignore types assertion as "apiServer.Get" will return ERRNOTFOUND in the worst case scenario
@@ -167,12 +189,12 @@ func (d *rawDrd) decodeOne(v any) (types.Resource[types.APIVersionKind], error) 
 }
 
 // raw decoding into map[any]any
-func decodeRaw(d decoder) ([]map[any]any, error) {
-	out := make([]map[any]any, 0)
+func decodeRaw(d decoder) ([]map[string]any, error) {
+	out := make([]map[string]any, 0)
 	done := false
 	i := 0
 	for !done {
-		var v map[any]any
+		var v map[string]any
 		if err := d.Decode(&v); errors.Is(err, io.EOF) {
 			done = true // End of file/stream
 		} else if err != nil {

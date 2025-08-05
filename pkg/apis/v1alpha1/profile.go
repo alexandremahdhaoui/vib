@@ -43,6 +43,9 @@ func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 	refs := make(map[types.NamespacedName]string, len(p.Refs))
 	namespaces := make(map[string]struct{})
 	for _, ref := range p.Refs {
+		if err := types.NamespacedNameDefaulter(&ref); err != nil {
+			return "", err
+		}
 		if err := types.ValidateNamespacedName(ref); err != nil {
 			return "", err
 		}

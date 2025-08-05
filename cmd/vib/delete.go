@@ -108,6 +108,7 @@ func (d *del) Run() error {
 			"name", name,
 			"apiVersion", specificAvk.APIVersion(),
 			"kind", specificAvk.Kind(),
+			"namespace", res.Metadata.Namespace,
 		)
 	}
 
