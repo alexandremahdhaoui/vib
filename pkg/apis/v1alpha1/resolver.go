@@ -250,7 +250,7 @@ func NewFunctionResolver() types.Resource[types.APIVersionKind] {
 			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
 				Type: FmtResolverType,
 				Fmt: &FmtResolverSpec{
-					Template:     "function %s() {\n%s\n}",
+					Template:     "%s() { %s ; }",
 					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
 				},
 			},
@@ -310,8 +310,8 @@ func NewExportedEnvironmentResolver() types.Resource[types.APIVersionKind] {
 			ResolverSpec{ //nolint:exhaustruct,exhaustivestruct
 				Type: FmtResolverType,
 				Fmt: &FmtResolverSpec{
-					Template:     "%s=%q\nexport %s",
-					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument, KeyFmtArgument},
+					Template:     "export %s=%q",
+					FmtArguments: []FmtArgument{KeyFmtArgument, ValueFmtArgument},
 				},
 			},
 		),
