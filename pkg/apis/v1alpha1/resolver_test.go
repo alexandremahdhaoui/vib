@@ -54,7 +54,7 @@ func TestResolverSpec_Render(t *testing.T) {
 			Resource: v1alpha1.NewFunctionResolver(),
 			Key:      "test1",
 			Value:    "echo $1",
-			Want:     "test1() { echo $1 ; }",
+			Want:     "function test1() {\necho $1\n}",
 		},
 
 		{
@@ -70,7 +70,7 @@ func TestResolverSpec_Render(t *testing.T) {
 			Resource: v1alpha1.NewExportedEnvironmentResolver(),
 			Key:      "TEST",
 			Value:    "3",
-			Want:     "export TEST=\"3\"",
+			Want:     "TEST=\"3\"\nexport TEST",
 		},
 	} {
 		resolver, ok := tc.Resource.Spec.(v1alpha1.ResolverSpec)
