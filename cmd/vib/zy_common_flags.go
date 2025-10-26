@@ -21,6 +21,7 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
+// NewAPIVersionFlag defines a new "apiVersion" flag.
 func NewAPIVersionFlag(fs *flag.FlagSet, sVar *string) {
 	fs.StringVar(
 		sVar,
@@ -30,6 +31,7 @@ func NewAPIVersionFlag(fs *flag.FlagSet, sVar *string) {
 	)
 }
 
+// NewNamespaceFlag defines a new "namespace" flag.
 func NewNamespaceFlag(fs *flag.FlagSet, sVar *string) {
 	fs.StringVar(
 		sVar,
@@ -39,6 +41,7 @@ func NewNamespaceFlag(fs *flag.FlagSet, sVar *string) {
 	)
 }
 
+// NewOutputEncodingFlag defines a new "output" flag.
 func NewOutputEncodingFlag(fs *flag.FlagSet, sVar *string) {
 	fs.StringVar(
 		sVar,

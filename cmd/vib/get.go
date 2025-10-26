@@ -34,6 +34,7 @@ const getDesc = `
 		KIND: the kind of the resource.
 		[NAME{X}]: name(s) of resources that must be returned. (optional)`
 
+// NewGet creates a new "get" command.
 func NewGet(apiServer types.APIServer, storage types.Storage) Command {
 	out := &get{
 		apiServer:  apiServer,
@@ -51,6 +52,7 @@ func NewGet(apiServer types.APIServer, storage types.Storage) Command {
 	return out
 }
 
+// get holds the dependencies and flags for the "get" command.
 type get struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
@@ -60,17 +62,17 @@ type get struct {
 	storage    types.Storage
 }
 
-// FS implements Command.
+// FS implements the Command interface.
 func (g *get) FS() *flag.FlagSet {
 	return g.fs
 }
 
-// Description implements Command.
+// Description implements the Command interface.
 func (g *get) Description() string {
 	return getDesc
 }
 
-// Run implements Command.
+// Run implements the Command interface.
 func (g *get) Run() error {
 	if g.fs.NArg() < 1 {
 		return flaterrors.Join(

@@ -24,75 +24,87 @@ import (
 )
 
 type (
+	// APIServer is the interface that defines the methods for an API server.
 	APIServer interface {
-		// Registers a new APIVersion to the APIServer
+		// Register registers a new APIVersion to the APIServer.
 		Register(avkFactory []AVKFunc)
 
 		// Get will return a zero valued instance of a Resource corresponding
-		// to the return AVK
+		// to the return AVK.
 		Get(avk APIVersionKind) (Resource[APIVersionKind], error)
 	}
 
+	// APIVersionKind is the interface that defines the methods for an API version and kind.
 	APIVersionKind interface {
 		APIVersion() APIVersion
 		Kind() Kind
 	}
 
+	// Codec is the interface that defines the methods for a codec.
 	Codec interface {
 		Marshal(v any) ([]byte, error)
 		Unmarshal(b []byte, v any) error
 		Encoding() Encoding
 	}
 
+	// DynamicDecoder is the interface that defines the methods for a dynamic decoder.
 	DynamicDecoder[T any] interface {
 		Decode(io.Reader) ([]Resource[T], error)
 	}
 
+	// Reader is the interface that defines the methods for a reader.
 	Reader[T APIVersionKind] interface {
-		// List resources.
+		// Read reads and returns a list of resources.
 		Read() ([]Resource[T], error)
 	}
 
+	// Renderer is the interface that defines the methods for a renderer.
 	Renderer interface {
 		Render(storage Storage) (string, error)
 	}
 
+	// Storage is the interface that defines the methods for a storage.
 	Storage interface {
-		// List resources.
+		// List lists resources.
 		List(avk APIVersionKind, namespace string) ([]Resource[APIVersionKind], error)
 
-		// Get a resource by name. It returns types.ErrNotFound if the resource
+		// Get gets a resource by name. It returns types.ErrNotFound if the resource
 		// cannot be found.
 		Get(
 			avk APIVersionKind,
 			namespacedName NamespacedName,
 		) (Resource[APIVersionKind], error)
 
-		// Creates a resource if it does not exist in the store.
+		// Create creates a resource if it does not exist in the store.
 		Create(Resource[APIVersionKind]) error
 
-		// Update returns types.ErrNotFound if named resource cannot be found
+		// Update updates a resource. It returns types.ErrNotFound if named resource cannot be found.
 		Update(v Resource[APIVersionKind]) error
 
-		// Delete a resource in the store. Delete is idempotent.
+		// Delete deletes a resource in the store. Delete is idempotent.
 		Delete(avk APIVersionKind, namespacedName NamespacedName) error
 	}
 
+	// Validator is the interface that defines the methods for a validator.
 	Validator interface {
 		Validate() error
 	}
 )
 
 const (
-	DefaultNamespace   = "default"
+	// DefaultNamespace is the default namespace.
+	DefaultNamespace = "default"
+	// VibSystemNamespace is the namespace for vib system resources.
 	VibSystemNamespace = "vib-system"
 )
 
+// NamespacedName is a namespaced name.
 type NamespacedName struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
+// NewNamespacedNameFromMetadata returns a new NamespacedName from the given metadata.
 func NewNamespacedNameFromMetadata(metadata Metadata) NamespacedName {
 	namespace := metadata.Namespace
 	if namespace == "" {
@@ -105,24 +117,32 @@ func NewNamespacedNameFromMetadata(metadata Metadata) NamespacedName {
 	}
 }
 
+// AVKFunc is a function that returns an APIVersionKind.
 type AVKFunc func() APIVersionKind
 
+// Encoding is the encoding of a resource.
 type Encoding string
 
 const (
+	// JSONEncoding is the JSON encoding.
 	JSONEncoding Encoding = "json"
+	// YAMLEncoding is the YAML encoding.
 	YAMLEncoding Encoding = "yaml"
 )
 
 type (
+	// APIVersion is the API version of a resource.
 	APIVersion = string
-	Kind       = string
+	// Kind is the kind of a resource.
+	Kind = string
 )
 
+// NewAPIVersion returns a new APIVersion.
 func NewAPIVersion(s string) APIVersion {
 	return APIVersion(strings.ToLower(s))
 }
 
+// Metadata is the metadata of a resource.
 type Metadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
@@ -130,6 +150,7 @@ type Metadata struct {
 	Namespace   string            `json:"namespace,omitempty"`
 }
 
+// NewMetadata returns a new Metadata.
 func NewMetadata(name, namespace string) Metadata {
 	return Metadata{
 		Name:      name,
@@ -137,6 +158,7 @@ func NewMetadata(name, namespace string) Metadata {
 	} //nolint:exhaustruct,exhaustivestruct
 }
 
+// Resource is a generic resource.
 type Resource[T any] struct {
 	APIVersion APIVersion `json:"apiVersion"`
 	Kind       Kind       `json:"kind"`
@@ -149,16 +171,17 @@ type avk struct {
 	kind       Kind
 }
 
-// APIVersion implements APIVersionKind.
+// APIVersion implements the APIVersionKind interface.
 func (a avk) APIVersion() APIVersion {
 	return a.apiVersion
 }
 
-// Kind implements APIVersionKind.
+// Kind implements the APIVersionKind interface.
 func (a avk) Kind() Kind {
 	return a.kind
 }
 
+// NewAPIVersionKind returns a new APIVersionKind.
 func NewAPIVersionKind(apiVersion APIVersion, kind Kind) APIVersionKind {
 	return avk{
 		apiVersion: apiVersion,
@@ -166,6 +189,7 @@ func NewAPIVersionKind(apiVersion APIVersion, kind Kind) APIVersionKind {
 	}
 }
 
+// NewAVKFromResource returns a new APIVersionKind from the given resource.
 func NewAVKFromResource[T any](res Resource[T]) APIVersionKind {
 	return avk{
 		apiVersion: res.APIVersion,
@@ -173,6 +197,7 @@ func NewAVKFromResource[T any](res Resource[T]) APIVersionKind {
 	}
 }
 
+// GetTypedResourceFromStorage returns a typed resource from the storage.
 func GetTypedResourceFromStorage[T APIVersionKind](
 	storage Storage,
 	namespacedName NamespacedName,
@@ -198,6 +223,7 @@ func GetTypedResourceFromStorage[T APIVersionKind](
 	return out, nil
 }
 
+// ListTypedResourceFromStorage returns a list of typed resources from the storage.
 func ListTypedResourceFromStorage[T APIVersionKind](
 	storage Storage,
 	namespace string,

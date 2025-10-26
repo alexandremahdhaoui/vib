@@ -47,9 +47,13 @@ const (
 	defaultOutputEncoding  = types.YAMLEncoding
 )
 
+// Command is the interface that all commands must implement.
 type Command interface {
+	// Description returns a short description of the command.
 	Description() string
+	// FS returns the command's FlagSet.
 	FS() *flag.FlagSet
+	// Run executes the command.
 	Run() error
 }
 
@@ -192,15 +196,19 @@ func help(w io.Writer, cmds []Command) {
 // - LIST RESOURCES
 // ---------------------------------------------------------------------
 
+// ListArgs holds the arguments for the List function.
 type ListArgs struct {
+	// APIVersion is the API version of the resources to list.
 	APIVersion types.APIVersion
-	Kind       types.Kind
+	// Kind is the kind of the resources to list.
+	Kind types.Kind
+	// NameFilter is a map of names to filter the resources by.
 	NameFilter map[string]struct{}
 }
 
-// List must return a list of resources.
-// The caller (i.e. "get") can then choose how to format the result.
-// List can be used for other calls such as render
+// List returns a list of resources.
+// The caller (e.g., the "get" command) can then choose how to format the result.
+// List can be used for other calls such as "render".
 func List(
 	storage types.Storage,
 	apiVersion types.APIVersion,

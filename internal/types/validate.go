@@ -26,17 +26,23 @@ import (
 )
 
 var (
-	KindRegex         = regexp.MustCompile(`^([A-Z][a-z]+)+$`)
-	LoweredKindRegex  = regexp.MustCompile(`^[a-z]+$`)
+	// KindRegex is the regex for a Kind.
+	KindRegex = regexp.MustCompile(`^([A-Z][a-z]+)+$`)
+	// LoweredKindRegex is the regex for a lowered Kind.
+	LoweredKindRegex = regexp.MustCompile(`^[a-z]+$`)
+	// ResourceNameRegex is the regex for a resource name.
 	ResourceNameRegex = regexp.MustCompile(`^[a-z][a-z0-9]+(\-[a-z0-9]+)*$`)
-	APIVersionRegex   = regexp.MustCompile(
+	// APIVersionRegex is the regex for an APIVersion.
+	APIVersionRegex = regexp.MustCompile(
 		`^([a-z0-9]+([a-z0-9]+)*)+(\.([a-z0-9]+([a-z0-9]+)*)+)*(\.[a-z]+)+/v[0-9]+[a-z0-9]*$`,
 	)
+	// APIVersionAndKindRegex is the regex for an APIVersion and Kind.
 	APIVersionAndKindRegex = regexp.MustCompile(
 		`^([a-z0-9]+([a-z0-9]+)*)+(\.([a-z0-9]+([a-z0-9]+)*)+)*(\.[a-z]+)+/v[0-9]+[a-z0-9]*/([A-Z][a-z]+)+$`,
 	)
 )
 
+// ValidateResource validates a resource.
 func ValidateResource[T any](resource Resource[T]) error {
 	var errs error
 
@@ -63,6 +69,7 @@ func ValidateResource[T any](resource Resource[T]) error {
 	return nil
 }
 
+// ValidateAPIVersion validates an APIVersion.
 func ValidateAPIVersion(apiVersion APIVersion) error {
 	if !APIVersionRegex.MatchString(string(apiVersion)) {
 		return flaterrors.Join(
@@ -73,6 +80,7 @@ func ValidateAPIVersion(apiVersion APIVersion) error {
 	return nil
 }
 
+// ValidateKind validates a Kind.
 func ValidateKind(kind Kind) error {
 	loweredKind := strings.ToLower(string(kind))
 	if !LoweredKindRegex.MatchString(loweredKind) {
@@ -84,6 +92,7 @@ func ValidateKind(kind Kind) error {
 	return nil
 }
 
+// ValidateMetadata validates a Metadata.
 func ValidateMetadata(md Metadata) error {
 	// TODO: validate annotations
 	// TODO: validate labels
@@ -96,6 +105,7 @@ func ValidateMetadata(md Metadata) error {
 	return nil
 }
 
+// ValidateNamespacedName validates a NamespacedName.
 func ValidateNamespacedName(nsName NamespacedName) error {
 	if err := ValidateName(nsName.Name); err != nil {
 		return err
@@ -106,6 +116,7 @@ func ValidateNamespacedName(nsName NamespacedName) error {
 	return nil
 }
 
+// ValidateName validates a name.
 func ValidateName(s string) error {
 	if !ResourceNameRegex.MatchString(s) {
 		return flaterrors.Join(
@@ -116,6 +127,7 @@ func ValidateName(s string) error {
 	return nil
 }
 
+// ValidateNamespace validates a namespace.
 func ValidateNamespace(s string) error {
 	if !ResourceNameRegex.MatchString(s) {
 		return flaterrors.Join(

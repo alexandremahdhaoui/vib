@@ -34,6 +34,7 @@ const createDesc = `
 		Kind: the kind of the resource.
 		NAME: name of the resource to create.`
 
+// NewCreate creates a new "create" command.
 func NewCreate(
 	apiServer types.APIServer,
 	storage types.Storage,
@@ -54,6 +55,7 @@ func NewCreate(
 	return out
 }
 
+// create holds the dependencies and flags for the "create" command.
 type create struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
@@ -63,17 +65,17 @@ type create struct {
 	storage    types.Storage
 }
 
-// FS implements Command.
+// FS implements the Command interface.
 func (g *create) FS() *flag.FlagSet {
 	return g.fs
 }
 
-// Description implements Command.
+// Description implements the Command interface.
 func (g *create) Description() string {
 	return createDesc
 }
 
-// Run implements Command.
+// Run implements the Command interface.
 func (g *create) Run() error {
 	outputCodec, err := NewCodec(types.Encoding(g.outputEnc))
 	if err != nil {

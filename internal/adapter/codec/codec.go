@@ -31,38 +31,48 @@ var (
 	_ types.Codec = &yamlCodec{}
 )
 
+// NewJSON returns a new JSON codec.
 func NewJSON() types.Codec {
 	return &jsonCodec{}
 }
 
+// jsonCodec implements the types.Codec interface for JSON encoding.
 type jsonCodec struct{}
 
+// Marshal implements the types.Codec interface.
 func (s *jsonCodec) Marshal(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
+// Unmarshal implements the types.Codec interface.
 func (s *jsonCodec) Unmarshal(data []byte, v any) error {
 	return json.Unmarshal(data, v)
 }
 
+// Encoding implements the types.Codec interface.
 func (s *jsonCodec) Encoding() types.Encoding {
 	return types.JSONEncoding
 }
 
+// NewYAML returns a new YAML codec.
 func NewYAML() types.Codec {
 	return &yamlCodec{}
 }
 
+// yamlCodec implements the types.Codec interface for YAML encoding.
 type yamlCodec struct{}
 
+// Marshal implements the types.Codec interface.
 func (s *yamlCodec) Marshal(v any) ([]byte, error) {
 	return yaml.Marshal(v)
 }
 
+// Unmarshal implements the types.Codec interface.
 func (s *yamlCodec) Unmarshal(data []byte, v any) error {
 	return yaml.Unmarshal(data, v)
 }
 
+// Encoding implements the types.Codec interface.
 func (s *yamlCodec) Encoding() types.Encoding {
 	return types.YAMLEncoding
 }
