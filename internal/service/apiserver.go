@@ -33,18 +33,20 @@ type (
 	}
 )
 
+// apiServer implements the types.APIServer interface.
 type apiServer struct {
 	leavesByHash          map[avkHash]leaf
 	registeredAPIVersions []types.APIVersion
 }
 
+// NewAPIServer returns a new APIServer.
 func NewAPIServer() types.APIServer {
 	return &apiServer{
 		leavesByHash: make(map[avkHash]leaf),
 	}
 }
 
-// Get implements types.APIServer.
+// Get implements the types.APIServer interface.
 func (a *apiServer) Get(avk types.APIVersionKind) (types.Resource[types.APIVersionKind], error) {
 	l, err := a.getLeaf(avk)
 	if err != nil {
@@ -60,7 +62,7 @@ func (a *apiServer) Get(avk types.APIVersionKind) (types.Resource[types.APIVersi
 	}, nil
 }
 
-// Register implements types.APIServer.
+// Register implements the types.APIServer interface.
 func (a *apiServer) Register(avkFactory []types.AVKFunc) {
 	for _, f := range avkFactory {
 		avk := f()

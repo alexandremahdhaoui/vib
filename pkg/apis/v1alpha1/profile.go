@@ -21,24 +21,29 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/util"
 )
 
+// ProfileSpec defines the desired state of a Profile.
+// It contains a list of references to ExpressionSets that should be rendered to form the profile.
 type ProfileSpec struct {
-	// Refs is a list of reference to Expression or ExpressionSet
+	// Refs is a list of references to ExpressionSets.
 	// TODO: ExpressionRefs must be validated to ensure no duplication.
-	// Name duplication would yield unexpected behavior
+	// Name duplication would yield unexpected behavior.
 	Refs []types.NamespacedName `json:"refs"`
 }
 
-// APIVersion implements types.DefinedResource.
+// APIVersion returns the APIVersion of the ProfileSpec.
+// It implements the types.DefinedResource interface.
 func (p ProfileSpec) APIVersion() types.APIVersion {
 	return APIVersion
 }
 
-// Kind implements types.DefinedResource.
+// Kind returns the Kind of the ProfileSpec.
+// It implements the types.DefinedResource interface.
 func (p ProfileSpec) Kind() types.Kind {
 	return ProfileKind
 }
 
-// Render implements types.Renderer.
+// Render renders the ProfileSpec by resolving and rendering each of the referenced ExpressionSets.
+// It implements the types.Renderer interface.
 func (p *ProfileSpec) Render(storage types.Storage) (string, error) {
 	refList := make([]types.NamespacedName, len(p.Refs))
 	refMap := make(map[types.NamespacedName]string, len(p.Refs))

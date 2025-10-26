@@ -27,6 +27,8 @@ const (
 	APIVersion types.APIVersion = "vib.alexandre.mahdhaoui.com/v1alpha1"
 )
 
+// RegisterWithManager registers the APIVersionKinds of this package with the given manager.
+// It allows the manager to discover and manage the resources defined in this API group version.
 func RegisterWithManager(mgr types.APIServer) {
 	mgr.Register([]types.AVKFunc{
 		func() types.APIVersionKind { return &ExpressionSetSpec{} },

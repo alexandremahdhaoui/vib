@@ -21,29 +21,34 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/util"
 )
 
+// ExpressionSetSpec defines the desired state of an ExpressionSet.
+// It contains a set of expressions that can be rendered into a desired output and referenced in a profile.
 type ExpressionSetSpec struct {
-	// ArbitraryKeys is used for special resolvers, such as plain that does not require associated values
-	// ArbitraryKeys are always rendered before KeyValues
+	// ArbitraryKeys is used for special resolvers, such as "plain", that do not require associated values.
+	// ArbitraryKeys are always rendered before KeyValues.
 	ArbitraryKeys []string `json:"arbitraryKeys"`
 
-	// KeyValues uses a list of map to avoid reordered key-values
+	// KeyValues uses a list of maps to avoid reordered key-values.
 	KeyValues []map[string]string `json:"keyValues"`
 
-	// ResolverRef
+	// ResolverRef is a reference to the Resolver that should be used to render this ExpressionSet.
 	ResolverRef types.NamespacedName `json:"resolverRef"`
 }
 
-// APIVersion implements types.DefinedResource.
+// APIVersion returns the APIVersion of the ExpressionSetSpec.
+// It implements the types.DefinedResource interface.
 func (e ExpressionSetSpec) APIVersion() types.APIVersion {
 	return APIVersion
 }
 
-// Kind implements types.DefinedResource.
+// Kind returns the Kind of the ExpressionSetSpec.
+// It implements the types.DefinedResource interface.
 func (e ExpressionSetSpec) Kind() types.Kind {
 	return ExpressionSetKind
 }
 
-// Render implements types.Renderer.
+// Render renders the ExpressionSetSpec using the specified storage to resolve a resolver.
+// It implements the types.Renderer interface.
 func (e *ExpressionSetSpec) Render(storage types.Storage) (string, error) {
 	resolverRef := defaultRef(e.ResolverRef)
 	if err := types.ValidateNamespacedName(resolverRef); err != nil {

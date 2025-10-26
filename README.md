@@ -3,6 +3,43 @@
 Vib allows users to intuitively manage and share their shell environments
 with their teams, organization and across any platforms.
 
+## Table of Contents
+
+- [Concepts](#concepts)
+- [Repository Structure](#repository-structure)
+- [Getting started](#getting-started)
+  - [Installation (script)](#installation-script)
+  - [Manual installation](#manual-installation)
+- [Configure vib](#configure-vib)
+  - [Your first ExpressionSet](#your-first-expressionset)
+  - [Create more ExpressionSets](#create-more-expressionsets)
+  - [Edit your Profile](#edit-your-profile)
+- [vib's commands](#vib-s-commands)
+- [See Also](#see-also)
+
+## Concepts
+
+`vib` is built around three core concepts which are defined as Kubernetes-style resources. For more details on the API definitions, see the [`pkg/apis/v1alpha1`](./pkg/apis/v1alpha1/README.md) package documentation.
+
+*   **ExpressionSet**: A set of expressions that can be rendered into a desired output. An `ExpressionSet` is a collection of key-value pairs or arbitrary keys that are processed by a `Resolver`.
+*   **Resolver**: A special resource that transforms an `ExpressionSet` into a specific output format. For example, the built-in `alias` resolver takes key-value pairs and formats them as `alias key='value'`. `vib` comes with several built-in resolvers, and you can create your own.
+*   **Profile**: A resource that references one or more `ExpressionSet`s to create a complete shell environment. Profiles are the top-level resource that you will typically render to configure your shell.
+
+By combining these three concepts, you can create a modular and reusable shell configuration that can be easily shared and customized.
+
+## Repository Structure
+
+This repository is organized into several packages. Here's a brief overview:
+
+*   [`cmd/vib`](./cmd/vib/README.md): The main entrypoint for the `vib` command-line tool.
+*   [`pkg/apis/v1alpha1`](./pkg/apis/v1alpha1/README.md): Contains the API definitions for the `vib` custom resources.
+*   `internal/`: Contains the internal implementation of `vib`.
+    *   [`internal/adapter/codec`](./internal/adapter/codec/README.md): Provides codecs for encoding and decoding `vib` resources.
+    *   [`internal/adapter/formatter`](./internal/adapter/formatter/README.md): Provides formatters for `vib` resources.
+    *   [`internal/service`](./internal/service/README.md): Contains the `APIServer` implementation.
+    *   [`internal/types`](./internal/types/README.md): Defines the core types and interfaces.
+    *   [`internal/util`](./internal/util/README.md): Provides utility functions.
+
 ## Getting started
 
 ### Installation (script)
@@ -203,6 +240,8 @@ EOF
 
 ## vib's commands
 
+The `vib` tool provides several commands for managing resources. For more details on the command-line interface, see the [`cmd/vib`](./cmd/vib/README.md) package documentation.
+
 | Command | Description |
 |---------|-------------|
 | Apply   | Applies resources from stdin or a file. |
@@ -211,3 +250,9 @@ EOF
 | Edit    | Edit a resource. |
 | Get     | Get a set of resource by name or list all resources in a namespace. |
 | Render  | Renders the specified resource. |
+
+## See Also
+
+- [Documentation Conventions](./docs/doc-convention.md)
+- [`cmd/vib` README](./cmd/vib/README.md)
+- [`pkg/apis/v1alpha1` README](./pkg/apis/v1alpha1/README.md)

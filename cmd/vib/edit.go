@@ -36,6 +36,7 @@ const editDesc = `
 		KIND: the kind of the resource.
 		NAME [NAME{X}]: name of resource(s) to edit.`
 
+// NewEdit creates a new "edit" command.
 func NewEdit(
 	apiServer types.APIServer,
 	storage types.Storage,
@@ -64,6 +65,7 @@ func NewEdit(
 	return out
 }
 
+// edit holds the dependencies and flags for the "edit" command.
 type edit struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
@@ -74,17 +76,17 @@ type edit struct {
 	storage    types.Storage
 }
 
-// Description implements Command.
+// Description implements the Command interface.
 func (e *edit) Description() string {
 	return editDesc
 }
 
-// FS implements Command.
+// FS implements the Command interface.
 func (e *edit) FS() *flag.FlagSet {
 	return e.fs
 }
 
-// Run implements Command.
+// Run implements the Command interface.
 func (e *edit) Run() error {
 	// -- 1. List resources
 	// -- 2. For each resource: Edit

@@ -22,16 +22,25 @@ import (
 )
 
 var (
-	ErrType     = errors.New("ERRTYPE: unsupported type")
-	ErrFile     = errors.New("ERRFILE: unsupported file extension")
+	// ErrType is returned when an unsupported type is encountered.
+	ErrType = errors.New("ERRTYPE: unsupported type")
+	// ErrFile is returned when an unsupported file extension is encountered.
+	ErrFile = errors.New("ERRFILE: unsupported file extension")
+	// ErrEncoding is returned when an unsupported encoding is encountered.
 	ErrEncoding = errors.New("ERRENC: unsupported encoding")
-	ErrExists   = errors.New("ERREXISTS: resource already exist")
+	// ErrExists is returned when a resource already exists.
+	ErrExists = errors.New("ERREXISTS: resource already exist")
+	// ErrNotFound is returned when a resource cannot be found.
 	ErrNotFound = errors.New("ERRNOTFOUND: resource cannot be found")
-	ErrArgs     = errors.New("ERRARGS: unexpected argument")
-	ErrVal      = errors.New("ERRVAL: input cannot be validated")
-	ErrRef      = errors.New("ERRREF: unexpected reference")
+	// ErrArgs is returned when unexpected arguments are provided.
+	ErrArgs = errors.New("ERRARGS: unexpected argument")
+	// ErrVal is returned when input cannot be validated.
+	ErrVal = errors.New("ERRVAL: input cannot be validated")
+	// ErrRef is returned when an unexpected reference is encountered.
+	ErrRef = errors.New("ERRREF: unexpected reference")
 )
 
+// ErrAtIndex returns an error with the given index.
 func ErrAtIndex(i int) error {
 	return fmt.Errorf("error is propably located at index %d", i)
 }
