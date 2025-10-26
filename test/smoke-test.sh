@@ -38,7 +38,7 @@ ${VIB} create -n nst-0 expressionset nst-0-es
 ${VIB} create -n nst-1 profile nst-1-p
 
 cat <<EOF | ${VIB} apply -f -
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+apiVersion: vib.amahdha.com/v1alpha1
 kind: ExpressionSet
 metadata:
   name: default-es
@@ -51,7 +51,7 @@ spec:
 EOF
 
 cat <<EOF | ${VIB} apply -f -
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+apiVersion: vib.amahdha.com/v1alpha1
 kind: ExpressionSet
 metadata:
   name: nst-0-es
@@ -65,7 +65,7 @@ spec:
 EOF
 
 cat <<EOF | ${VIB} apply -f -
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+apiVersion: vib.amahdha.com/v1alpha1
 kind: Profile
 metadata:
   name: nst-1-p

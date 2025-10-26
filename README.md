@@ -134,7 +134,7 @@ Create a new `ExpressionSet` that will declare and export a few environment vari
 
 ```bash
 cat <<'EOF' | vib apply -f -
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+apiVersion: vib.amahdha.com/v1alpha1
 kind: ExpressionSet
 metadata:
   name: env
@@ -173,7 +173,7 @@ using the `alias` resolver.
 
 ```bash
 cat <<'EOF' | vib apply -f -
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+apiVersion: vib.amahdha.com/v1alpha1
 kind: ExpressionSet
 metadata:
   name: alias
@@ -201,7 +201,7 @@ Or run:
 
 ```bash
 cat <<EOF | vib apply -f -
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+apiVersion: vib.amahdha.com/v1alpha1
 kind: Profile
 metadata:
   name: $(hostname)
