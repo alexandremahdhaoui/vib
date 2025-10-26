@@ -1,0 +1,17 @@
+---
+apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+kind: ExpressionSet
+metadata:
+  name: kubectl-aliases
+spec:
+  resolverRef:
+    name: alias
+    namespace: vib-system
+  keyValues:
+    - k: kubectl
+    - ka: kubectl apply -f
+    - kg: kubectl get
+    - kd: kubectl describe
+    - kdel: kubectl delete
+    - klogs: kubectl logs
+    - kexec: kubectl exec -it

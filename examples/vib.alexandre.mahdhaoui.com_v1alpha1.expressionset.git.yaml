@@ -1,0 +1,22 @@
+---
+apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+kind: ExpressionSet
+metadata:
+  name: git
+spec:
+  resolverRef:
+    name: alias
+    namespace: vib-system
+  keyValues:
+    - g: git
+    - ga: git add
+    - gc: git commit
+    - gca: git commit --amend
+    - gco: git checkout
+    - gd: git diff
+    - gds: git diff --staged
+    - gf: git fetch
+    - gl: git log
+    - gp: git pull
+    - gP: git push
+    - gs: git status

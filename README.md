@@ -30,22 +30,48 @@ export GOBIN="${GOBIN:-${GOPATH}/bin}"
 export PATH="${GOBIN}:${PATH}"
 ```
 
-#### Set up vib
+### Setup
 
 Create a new profile named after your hostname:
 
 ```bash
-VIB_PROFILE="$(hostname)"
-vib create profile "${VIB_PROFILE}"
+vib create profile "$(hostname)"
 ```
 
 Ensure your profile is sourced when opening a new shell:
 
 ```bash
-cat <<EOF | tee -a "${HOME}/.${SHELL}rc"
+cat <<EOF | tee -a "${HOME}/.${SHELL}rc" # zsh, bash
 . <(vib render profile "$(hostname)")
 EOF
 ```
+
+or
+
+```bash
+echo '. <(vib render profile "$(hostname)")' | tee -a "${HOME}/.${SHELL}rc"
+```
+
+## Usage
+
+### Create a new `ExpressionSet`
+
+```bash
+cat <<'EOF' | vib apply -f -
+apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+kind: ExpressionSet
+metadata:
+  name: my-expressionset
+spec:
+  resolverRef:
+    name: alias
+    namespace: vib-system
+  keyValues:
+    - hello: echo "hello world"
+EOF
+```
+
+For more examples, see the [examples](./examples/README.md) directory.
 
 ## Configure vib
 
