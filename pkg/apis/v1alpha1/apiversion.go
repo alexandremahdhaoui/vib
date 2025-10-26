@@ -24,7 +24,7 @@ const (
 	ResolverKind      types.Kind = "Resolver"
 	ProfileKind       types.Kind = "Profile"
 
-	APIVersion types.APIVersion = "vib.alexandre.mahdhaoui.com/v1alpha1"
+	APIVersion types.APIVersion = "vib.amahdha.com/v1alpha1"
 )
 
 // RegisterWithManager registers the APIVersionKinds of this package with the given manager.

@@ -1,5 +1,5 @@
 ---
-apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+apiVersion: vib.amahdha.com/v1alpha1
 kind: ExpressionSet
 metadata:
   name: kubectl

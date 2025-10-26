@@ -49,11 +49,11 @@ func TestDynamicResourceDecoder(t *testing.T) {
 		buf := bytes.NewBufferString(`
 ---
 items:
-  - apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+  - apiVersion: vib.amahdha.com/v1alpha1
     kind: ExpressionSet
     metadata:
       name: ItemFromExpressionSet
-  - apiVersion: vib.alexandre.mahdhaoui.com/v1alpha1
+  - apiVersion: vib.amahdha.com/v1alpha1
     kind: ExpressionSet
     metadata:
       name: test-test
