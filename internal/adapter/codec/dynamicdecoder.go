@@ -38,7 +38,7 @@ type decoder interface {
 	Decode(v any) error
 }
 
-// Instantiate a new dynamic resource decoder. A dynamic resource decoder is a special codec
+// NewDynamicResourceDecoder instantiates a new dynamic resource decoder. A dynamic resource decoder is a special codec
 // that can unmarshal one or many documents from any supported encoding.
 func NewDynamicResourceDecoder(
 	apiServer types.APIServer,
@@ -48,6 +48,7 @@ func NewDynamicResourceDecoder(
 	}
 }
 
+// rawDrd implements the types.DynamicDecoder interface.
 type rawDrd struct {
 	apiServer types.APIServer
 }
@@ -58,7 +59,7 @@ var (
 	errInputMustNotBeEmpty   = errors.New("input must not be empty")
 )
 
-// Decode implements types.DynamicDecoder.
+// Decode implements the types.DynamicDecoder interface.
 func (d *rawDrd) Decode(reader io.Reader) ([]types.Resource[types.APIVersionKind], error) {
 	b, err := io.ReadAll(reader)
 	if err != nil {

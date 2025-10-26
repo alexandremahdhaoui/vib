@@ -23,6 +23,7 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
+// NewCodec returns a new codec for the given encoding.
 func NewCodec(encoding types.Encoding) (types.Codec, error) {
 	switch encoding {
 	case types.JSONEncoding:

@@ -33,6 +33,7 @@ const deleteDesc = `
 		KIND: the kind of the resource to delete.
 		NAME [NAME{X}]: name(s) of resources to delete.`
 
+// NewDelete creates a new "delete" command.
 func NewDelete(
 	apiServer types.APIServer,
 	storage types.Storage,
@@ -51,6 +52,7 @@ func NewDelete(
 	return out
 }
 
+// del holds the dependencies and flags for the "delete" command.
 type del struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
@@ -59,17 +61,17 @@ type del struct {
 	storage    types.Storage
 }
 
-// Description implements Command.
+// Description implements the Command interface.
 func (d *del) Description() string {
 	return deleteDesc
 }
 
-// FS implements Command.
+// FS implements the Command interface.
 func (d *del) FS() *flag.FlagSet {
 	return d.fs
 }
 
-// Run implements Command.
+// Run implements the Command interface.
 func (d *del) Run() error {
 	if d.fs.NArg() < 2 {
 		return flaterrors.Join(

@@ -25,6 +25,7 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
+// NewApply creates a new "apply" command.
 func NewApply(
 	decoder types.DynamicDecoder[types.APIVersionKind],
 	storage types.Storage,
@@ -55,6 +56,7 @@ const applyDesc = `
 	Description:
 		Create or edit the the provided resources.`
 
+// apply holds the dependencies and flags for the "apply" command.
 type apply struct {
 	decoder   types.DynamicDecoder[types.APIVersionKind]
 	filePath  string
@@ -63,17 +65,17 @@ type apply struct {
 	storage   types.Storage
 }
 
-// Description implements Command.
+// Description implements the Command interface.
 func (a *apply) Description() string {
 	return applyDesc
 }
 
-// FS implements Command.
+// FS implements the Command interface.
 func (a *apply) FS() *flag.FlagSet {
 	return a.fs
 }
 
-// Run implements Command.
+// Run implements the Command interface.
 func (a *apply) Run() error {
 	filePath := a.filePath
 	if filePath == "" {

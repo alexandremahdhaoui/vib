@@ -28,6 +28,7 @@ import (
 	"github.com/alexandremahdhaoui/vib/internal/types"
 )
 
+// FileExist checks if a file exists.
 func FileExist(path string) (bool, error) {
 	err := MkBaseDir(path)
 	if err != nil {
@@ -46,6 +47,7 @@ func FileExist(path string) (bool, error) {
 	return true, nil
 }
 
+// MkBaseDir creates the base directory for the given path.
 func MkBaseDir(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
 		return err
@@ -53,15 +55,18 @@ func MkBaseDir(path string) error {
 	return nil
 }
 
+// Ptr returns a pointer to the given value.
 func Ptr[T any](t T) *T {
 	return &t
 }
 
+// RemoveIndexFromSlice removes an element from a slice at the given index.
 func RemoveIndexFromSlice[T any](sl []T, i int) []T {
 	sl[i] = sl[len(sl)-1]
 	return sl[:len(sl)-1]
 }
 
+// JoinLine joins a line to a buffer.
 func JoinLine(buffer string, line string) string {
 	if line == "" {
 		return buffer
@@ -74,6 +79,7 @@ func JoinLine(buffer string, line string) string {
 	return strings.Join([]string{buffer, line}, "\n")
 }
 
+// EditFile opens a temporary file with the given content and allows the user to edit it with the given editor.
 func EditFile(editor string, b []byte, encoding types.Encoding) ([]byte, error) {
 	// we use encoding as filename extension for the user experience
 	tmpFilename := fmt.Sprintf("vib-edit-*.%s", encoding)
@@ -116,6 +122,7 @@ func EditFile(editor string, b []byte, encoding types.Encoding) ([]byte, error) 
 	return out, nil
 }
 
+// Must panics if the given error is not nil.
 func Must[T any](out T, err error) T {
 	if err != nil {
 		panic(err.Error())

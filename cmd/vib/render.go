@@ -33,6 +33,7 @@ const renderDesc = `
 		KIND: The kind of the resource to render.
 		NAME: The name of the resource to render.`
 
+// NewRender creates a new "render" command.
 func NewRender(apiServer types.APIServer, storage types.Storage) Command {
 	out := &render{
 		apiServer:  apiServer,
@@ -48,6 +49,7 @@ func NewRender(apiServer types.APIServer, storage types.Storage) Command {
 	return out
 }
 
+// render holds the dependencies and flags for the "render" command.
 type render struct {
 	apiServer  types.APIServer
 	apiVersion types.APIVersion
@@ -56,17 +58,17 @@ type render struct {
 	storage    types.Storage
 }
 
-// FS implements Command.
+// FS implements the Command interface.
 func (r *render) FS() *flag.FlagSet {
 	return r.fs
 }
 
-// Description implements Command.
+// Description implements the Command interface.
 func (r *render) Description() string {
 	return renderDesc
 }
 
-// Run implements Command.
+// Run implements the Command interface.
 func (r *render) Run() error {
 	if r.fs.NArg() < 2 {
 		return flaterrors.Join(
