@@ -5,7 +5,17 @@ with their teams, organization and across any platforms.
 
 ## Getting started
 
-### Installation (script)
+### Installation
+
+The easiest way to install `vib` is to use the `make install` command. This will download and run the installer script with the latest version.
+
+```bash
+make install
+```
+
+If your system's hostname contains invalid characters for a resource name (e.g., dots), the installer will prompt you to enter a valid profile name.
+
+Alternatively, you can run the installer script directly:
 
 ```bash
 VERSION=v1.0.0
@@ -26,7 +36,7 @@ If `vib --help` returns `vib: command not found`, ensure the Go bin directory is
 
 ```bash
 export GOPATH="${GOPATH:-$(go env GOPATH)}"
-export GOBIN="${GOBIN:-${GOPATH}/bin}"
+export GOBIN="${GOBIN:-${GOBIN:-${GOPATH}/bin}}"
 export PATH="${GOBIN}:${PATH}"
 ```
 
@@ -46,6 +56,16 @@ cat <<EOF | tee -a "${HOME}/.${SHELL}rc"
 . <(vib render profile "$(hostname)")
 EOF
 ```
+
+### Testing the Installer
+
+To verify the installer script, you can run the following command:
+
+```bash
+make test-install
+```
+
+This will run a test script that mocks the `hostname`, `go`, and `vib` commands to ensure the installer behaves as expected.
 
 ## Configure vib
 
@@ -104,7 +124,7 @@ metadata:
 spec:
   keyValues:
     - GOPATH: $(go env GOPATH)
-    - GOBIN: ${GOPATH}/bin
+    - GOBIN: ${GOBIN}/bin
     - PATH: ${PATH}:${GOBIN}
   resolverRef:
     name: environment-exported
