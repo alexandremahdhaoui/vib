@@ -1,4 +1,3 @@
----
 TODOs:
   cmd/vib-installer: |
     TODO: Hostname can be an invalid resource name:
@@ -43,7 +42,7 @@ TODOs:
       - Namespace: |
           Add the Namespace resource.
           To let users query existing namespaces.
-          This may require to create a "_global" namespace for non-namespaced resources.
+          This may require to create a "_global" non-visible namespace for non-namespaced resources.
 
           When should a namespace be created?
 
@@ -71,3 +70,22 @@ TODOs:
       - Formatter:
           - Add "-o name" && "-o table" as output format
           - It require refactoring OutputCodec to Formatter
+
+specialResources: |
+  Add the following resources:
+
+  Resources:
+  - Config: |
+  Add the config resource to v1alpha1.
+  Config should allow storing namespaces at particular location on the disk. (basically different path)
+
+  - FileSet: |
+  FileSet can be used to set up a new directory containing scripts, notes or docs.
+
+  It allows users to "create", "apply", "get", "edit", "delete" scripts, notes or docs contained in this directory.
+
+  A fileset can be considered as a special kind of namespaces because it specifies the path to special resources: custom files.
+
+  FileSets are global resources.
+
+  FileSets holds the "path" field and another field name "customResourceName". If set to "docs", then the user can access these files like if they were resources, except that they are just identified by their name. E.g. they could run "vib get docs mydoc.md". Vib would load all AVKs and also load all known FileSets.CustomResourceName. When a CustomResourceName exist and the user try to get/update... a resource with specified kind equal to the CustomResourceName, then vib loads the FileSet, checks the path and then try to find in that path the file that is named like "mydoc.md" in that directory. There must be special validation to prevent creation and loading of filesets with names that would collide with existing AVKs.
